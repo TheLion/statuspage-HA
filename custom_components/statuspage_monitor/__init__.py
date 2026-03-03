@@ -11,7 +11,7 @@ through the UI (Settings → Devices & Services → Add Integration).
 
 Supported platforms
 -------------------
-  • Atlassian Statuspage (statuspage.io) – full support
+  • Statuspage.io (statuspage.io) – full support
   • Status.io – planned
   • UptimeRobot Status Pages – planned
 
@@ -24,6 +24,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from .const import CONF_PROVIDER, DOMAIN
 from .coordinator import StatusPageMonitorCoordinator
@@ -34,6 +35,26 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
+async def _async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Rename entity IDs that are missing the statuspage_ prefix.
+
+    Older versions of this integration did not set suggested_object_id, so HA
+    generated entity IDs straight from the device+entity name (e.g.
+    sensor.claude_overall_status).  This migration renames them to include the
+    statuspage_ prefix (sensor.statuspage_claude_overall_status) to match what
+    new installs receive.
+    """
+    ent_reg = er.async_get(hass)
+    for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        domain, object_id = entity_entry.entity_id.split(".", 1)
+        if object_id.startswith("statuspage_"):
+            continue
+        new_entity_id = f"{domain}.statuspage_{object_id}"
+        if ent_reg.async_get(new_entity_id) is None:
+            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
+            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up StatusPage Monitor from a config entry."""
     provider_class = get_provider(entry.data.get(CONF_PROVIDER))
@@ -42,6 +63,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Perform the first refresh; raises ConfigEntryNotReady on failure which
     # causes HA to retry setup automatically.
     await coordinator.async_config_entry_first_refresh()
+
+    # Rename legacy entity IDs (missing the statuspage_ prefix) before
+    # the platform sets up its entities.
+    await _async_migrate_entity_ids(hass, entry)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 

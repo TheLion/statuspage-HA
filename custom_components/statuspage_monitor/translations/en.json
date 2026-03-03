@@ -17,7 +17,7 @@
     "error": {
       "cannot_connect": "Unable to connect to the status page. Check your network connection and the URL.",
       "invalid_url": "Invalid URL. Make sure it starts with https:// or http://.",
-      "not_a_statuspage": "No supported status page API found at this URL. Make sure the URL points to a compatible status page (e.g. Atlassian Statuspage).",
+      "not_a_statuspage": "No supported status page API found at this URL. Make sure the URL points to a compatible status page provider (e.g. statuspage.io, status.io, UptimeRobot).",
       "timeout": "Connection timed out. The server may be temporarily unavailable.",
       "unknown": "An unexpected error occurred. See the Home Assistant logs for details."
     },
