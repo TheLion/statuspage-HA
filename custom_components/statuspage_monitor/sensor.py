@@ -15,11 +15,8 @@ Sensor icons change dynamically to provide an immediate visual colour cue:
   🔴  mdi:close-circle      → major outage / critical issue
   🔧  mdi:wrench-clock      → under maintenance
 
-The icon_color entity property is set automatically so Lovelace cards that
-support it (Mushroom, standard Entity card with state_color: true) will show
-the correct colour without any manual template configuration.
-
-For Mushroom cards that need an explicit template, use:
+The icon_color attribute is exposed via extra_state_attributes so that
+Mushroom template cards can read it with:
   icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 """
 from __future__ import annotations
@@ -221,10 +218,6 @@ class OverallStatusSensor(_StatusPageEntity):
         return INDICATOR_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
-    def icon_color(self) -> str:
-        return INDICATOR_COLORS.get(self.native_value, "grey")
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data: StatusPageData | None = self.coordinator.data
         if not data:
@@ -234,6 +227,7 @@ class OverallStatusSensor(_StatusPageEntity):
             "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
             "page_updated_at": data.page.updated_at,
+            "icon_color": INDICATOR_COLORS.get(self.native_value, "grey"),
         }
 
 
@@ -385,10 +379,6 @@ class ComponentSensor(_StatusPageEntity):
         return COMPONENT_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
-    def icon_color(self) -> str:
-        return COMPONENT_COLORS.get(self.native_value, "grey")
-
-    @property
     def _component_data(self) -> Component | None:
         data: StatusPageData | None = self.coordinator.data
         if not data:
@@ -401,8 +391,9 @@ class ComponentSensor(_StatusPageEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         comp = self._component_data
+        color = COMPONENT_COLORS.get(self.native_value, "grey")
         if not comp:
-            return {"component_id": self._component_id}
+            return {"component_id": self._component_id, "icon_color": color}
         return {
             "component_id": self._component_id,
             "description": comp.description,
@@ -410,6 +401,7 @@ class ComponentSensor(_StatusPageEntity):
             "group_id": comp.group_id,
             "updated_at": comp.updated_at,
             "showcase": comp.showcase,
+            "icon_color": color,
         }
 
     @property
