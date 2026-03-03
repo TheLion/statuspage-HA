@@ -1,4 +1,4 @@
-"""Status Page Monitor integration for Home Assistant.
+"""StatusPage Monitor integration for Home Assistant.
 
 Monitors any compatible status page and exposes its health data as HA sensors:
   • Overall status indicator (none / minor / major / critical)
@@ -35,7 +35,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Status Page Monitor from a config entry."""
+    """Set up StatusPage Monitor from a config entry."""
     provider_class = get_provider(entry.data.get(CONF_PROVIDER))
     coordinator = StatusPageMonitorCoordinator(hass, entry, provider_class)
 

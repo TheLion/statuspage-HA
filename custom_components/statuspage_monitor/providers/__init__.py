@@ -1,4 +1,4 @@
-"""Provider registry for Status Page Monitor.
+"""Provider registry for StatusPage Monitor.
 
 Only *fully implemented* providers are listed in PROVIDERS.  Stub providers
 (status_io, uptimerobot) are importable but not registered here – add them

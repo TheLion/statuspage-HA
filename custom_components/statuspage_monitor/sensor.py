@@ -1,4 +1,4 @@
-"""Sensor platform for Status Page Monitor.
+"""Sensor platform for StatusPage Monitor.
 
 Creates the following sensors per configured status page:
 
@@ -103,7 +103,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Status Page Monitor sensors from a config entry.
+    """Set up StatusPage Monitor sensors from a config entry.
 
     Static sensors (overall status, incidents, maintenances) are created
     immediately.  Component sensors are added on the first coordinator
@@ -152,7 +152,7 @@ async def async_setup_entry(
 class _StatusPageEntity(
     CoordinatorEntity[StatusPageMonitorCoordinator], SensorEntity
 ):
-    """Base class shared by all Status Page Monitor sensor entities."""
+    """Base class shared by all StatusPage Monitor sensor entities."""
 
     _attr_has_entity_name = True
 
@@ -178,7 +178,7 @@ class _StatusPageEntity(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=page_name,
             manufacturer=provider_name,
-            model="Status Page Monitor",
+            model="StatusPage Monitor",
             configuration_url=self._entry.data[CONF_URL],
         )
 

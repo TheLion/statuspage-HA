@@ -1,6 +1,6 @@
 {
   "domain": "statuspage_monitor",
-  "name": "Status Page Monitor",
+  "name": "StatusPage Monitor",
   "version": "1.0.0",
   "codeowners": [],
   "config_flow": true,

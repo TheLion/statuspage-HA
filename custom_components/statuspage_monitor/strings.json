@@ -28,7 +28,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Status Page Monitor Options",
+        "title": "StatusPage Monitor Options",
         "data": {
           "scan_interval": "Poll interval (seconds)"
         },

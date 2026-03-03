@@ -1,4 +1,4 @@
-"""Constants for the Status Page Monitor integration."""
+"""Constants for the StatusPage Monitor integration."""
 
 DOMAIN = "statuspage_monitor"
 PLATFORMS = ["sensor"]
