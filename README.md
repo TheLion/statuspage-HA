@@ -123,26 +123,44 @@ Every sensor has a **dynamic icon** that reflects the current status at a glance
 | Major outage | `major_outage` | `mdi:close-circle` |
 | Under maintenance | `under_maintenance` | `mdi:wrench-clock` |
 
-### Enabling icon colour in Lovelace
+### Icon colours in Lovelace
 
-Add `state_color: true` to an Entity card to apply the colour automatically:
+HA's Device page does not automatically colour icons for custom sensors — this
+is a HA limitation that applies to all third-party integrations.
 
-```yaml
-type: entity
-entity: sensor.claude_overall_status
-state_color: true
-```
-
-Or inside an Entities card:
+To get coloured icons in a Lovelace card, add `state_color: true`:
 
 ```yaml
 type: entities
+title: Claude Status
 entities:
   - entity: sensor.claude_overall_status
     state_color: true
   - entity: sensor.claude_active_incidents
     state_color: true
+  - entity: sensor.claude_scheduled_maintenances
+    state_color: true
 ```
+
+For fully custom colours per state (green / yellow / orange / red), use
+[Mushroom Cards](https://github.com/piitaya/lovelace-mushroom):
+
+```yaml
+type: custom:mushroom-entity-card
+entity: sensor.claude_overall_status
+icon_color: >
+  {% set s = states('sensor.claude_overall_status') %}
+  {% if s == 'none' %} green
+  {% elif s == 'minor' %} yellow
+  {% elif s == 'major' %} orange
+  {% elif s == 'critical' %} red
+  {% else %} grey
+  {% endif %}
+```
+
+The same template pattern works for component sensors with
+`operational / degraded_performance / partial_outage / major_outage /
+under_maintenance`.
 
 ---
 

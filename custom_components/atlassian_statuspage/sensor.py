@@ -59,6 +59,7 @@ _LOGGER = logging.getLogger(__name__)
 OVERALL_STATUS_DESCRIPTION = SensorEntityDescription(
     key="overall_status",
     translation_key="overall_status",
+    has_entity_name=True,
     device_class=SensorDeviceClass.ENUM,
     options=INDICATOR_OPTIONS,
 )
@@ -66,6 +67,7 @@ OVERALL_STATUS_DESCRIPTION = SensorEntityDescription(
 INCIDENTS_DESCRIPTION = SensorEntityDescription(
     key="active_incidents",
     translation_key="active_incidents",
+    has_entity_name=True,
     native_unit_of_measurement="incidents",
     icon="mdi:alert-octagon",
 )
@@ -73,6 +75,7 @@ INCIDENTS_DESCRIPTION = SensorEntityDescription(
 MAINTENANCE_DESCRIPTION = SensorEntityDescription(
     key="scheduled_maintenances",
     translation_key="scheduled_maintenances",
+    has_entity_name=True,
     native_unit_of_measurement="maintenances",
     icon="mdi:calendar-clock",
 )
