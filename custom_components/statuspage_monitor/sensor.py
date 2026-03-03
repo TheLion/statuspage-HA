@@ -1,4 +1,4 @@
-"""Sensor platform for Atlassian Statuspage integration.
+"""Sensor platform for Status Page Monitor.
 
 Creates the following sensors per configured status page:
 
@@ -15,8 +15,12 @@ Sensor icons change dynamically to provide an immediate visual colour cue:
   🔴  mdi:close-circle      → major outage / critical issue
   🔧  mdi:wrench-clock      → under maintenance
 
-For richer colour feedback in Lovelace, enable ``state_color: true`` on an
-Entity card – the icon colour will then reflect the entity state.
+The icon_color entity property is set automatically so Lovelace cards that
+support it (Mushroom, standard Entity card with state_color: true) will show
+the correct colour without any manual template configuration.
+
+For Mushroom cards that need an explicit template, use:
+  icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 """
 from __future__ import annotations
 
@@ -33,26 +37,32 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import slugify
 
 from .const import (
     COMPONENT_COLORS,
     COMPONENT_ICONS,
-    COMPONENT_MAJOR_OUTAGE,
-    COMPONENT_MAINTENANCE,
     COMPONENT_OPERATIONAL,
     COMPONENT_STATUS_OPTIONS,
     CONF_URL,
     DOMAIN,
     INDICATOR_COLORS,
-    INDICATOR_CRITICAL,
     INDICATOR_ICONS,
-    INDICATOR_MINOR,
     INDICATOR_NONE,
     INDICATOR_OPTIONS,
 )
-from .coordinator import StatuspageCoordinator
+from .coordinator import StatusPageMonitorCoordinator
+from .providers.base import Component, StatusPageData
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _page_slug(coordinator: StatusPageMonitorCoordinator, entry: ConfigEntry) -> str:
+    """Return a URL-safe slug derived from the status page name (or URL fallback)."""
+    data: StatusPageData | None = coordinator.data
+    name = (data.page.name if data else None) or entry.data[CONF_URL]
+    return slugify(name)
+
 
 # ---------------------------------------------------------------------------
 # Entity descriptions for the static (non-component) sensors
@@ -93,13 +103,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Statuspage sensors from a config entry.
+    """Set up Status Page Monitor sensors from a config entry.
 
     Static sensors (overall status, incidents, maintenances) are created
     immediately.  Component sensors are added on the first coordinator
     update and whenever new components appear in subsequent updates.
     """
-    coordinator: StatuspageCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: StatusPageMonitorCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     known_component_ids: set[str] = set()
     static_added = False
@@ -112,20 +122,17 @@ async def async_setup_entry(
         if not static_added and coordinator.data:
             entities.extend(
                 [
-                    StatuspageOverallStatusSensor(coordinator, entry),
-                    StatuspageIncidentsSensor(coordinator, entry),
-                    StatuspageMaintenanceSensor(coordinator, entry),
+                    OverallStatusSensor(coordinator, entry),
+                    ActiveIncidentsSensor(coordinator, entry),
+                    ScheduledMaintenanceSensor(coordinator, entry),
                 ]
             )
             static_added = True
 
-        for component in (coordinator.data or {}).get("components", []):
-            comp_id = component.get("id")
-            if comp_id and comp_id not in known_component_ids:
-                known_component_ids.add(comp_id)
-                entities.append(
-                    StatuspageComponentSensor(coordinator, entry, component)
-                )
+        for component in (coordinator.data.components if coordinator.data else []):
+            if component.id not in known_component_ids:
+                known_component_ids.add(component.id)
+                entities.append(ComponentSensor(coordinator, entry, component))
 
         if entities:
             async_add_entities(entities)
@@ -142,14 +149,16 @@ async def async_setup_entry(
 # ---------------------------------------------------------------------------
 
 
-class _StatuspageEntity(CoordinatorEntity[StatuspageCoordinator], SensorEntity):
-    """Base class shared by all Statuspage sensor entities."""
+class _StatusPageEntity(
+    CoordinatorEntity[StatusPageMonitorCoordinator], SensorEntity
+):
+    """Base class shared by all Status Page Monitor sensor entities."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: StatuspageCoordinator,
+        coordinator: StatusPageMonitorCoordinator,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator)
@@ -158,13 +167,18 @@ class _StatuspageEntity(CoordinatorEntity[StatuspageCoordinator], SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Group all sensors of a status page under one logical device."""
-        data = self.coordinator.data or {}
-        page = data.get("page", {})
+        data: StatusPageData | None = self.coordinator.data
+        page_name = (data.page.name if data else None) or self._entry.data[CONF_URL]
+        provider_name = (
+            self._entry.data.get("provider", "statuspage_io")
+            .replace("_", " ")
+            .title()
+        )
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=page.get("name") or self._entry.data[CONF_URL],
-            manufacturer="Atlassian",
-            model="Statuspage",
+            name=page_name,
+            manufacturer=provider_name,
+            model="Status Page Monitor",
             configuration_url=self._entry.data[CONF_URL],
         )
 
@@ -174,57 +188,52 @@ class _StatuspageEntity(CoordinatorEntity[StatuspageCoordinator], SensorEntity):
 # ---------------------------------------------------------------------------
 
 
-class StatuspageOverallStatusSensor(_StatuspageEntity):
+class OverallStatusSensor(_StatusPageEntity):
     """Sensor reporting the overall status indicator of the status page.
 
     State is one of: none, minor, major, critical.
-    Icon colour:
-      none     → mdi:check-circle   (all operational)
-      minor    → mdi:alert          (minor degradation)
-      major    → mdi:alert-circle   (major degradation)
-      critical → mdi:close-circle   (critical / widespread outage)
     """
 
     entity_description = OVERALL_STATUS_DESCRIPTION
 
     def __init__(
         self,
-        coordinator: StatuspageCoordinator,
+        coordinator: StatusPageMonitorCoordinator,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_overall_status"
+        self._attr_suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_overall_status"
+        )
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         """Return the indicator level."""
-        data = self.coordinator.data or {}
-        indicator = data.get("status", {}).get("indicator")
-        if indicator not in INDICATOR_OPTIONS:
+        data: StatusPageData | None = self.coordinator.data
+        if not data:
             return INDICATOR_NONE
-        return indicator
+        indicator = data.status.indicator
+        return indicator if indicator in INDICATOR_OPTIONS else INDICATOR_NONE
 
     @property
     def icon(self) -> str:
-        """Return an icon that reflects the current indicator."""
-        return INDICATOR_ICONS.get(self.native_value or INDICATOR_NONE, "mdi:help-circle")
+        return INDICATOR_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
     def icon_color(self) -> str:
-        """Return a color that reflects the current indicator severity."""
-        return INDICATOR_COLORS.get(self.native_value or INDICATOR_NONE, "grey")
+        return INDICATOR_COLORS.get(self.native_value, "grey")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Expose additional details as attributes."""
-        data = self.coordinator.data or {}
-        status = data.get("status", {})
-        page = data.get("page", {})
+        data: StatusPageData | None = self.coordinator.data
+        if not data:
+            return {}
         return {
-            "description": status.get("description"),
-            "page_name": page.get("name"),
+            "description": data.status.description,
+            "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
-            "page_updated_at": page.get("updated_at"),
+            "page_updated_at": data.page.updated_at,
         }
 
 
@@ -233,57 +242,49 @@ class StatuspageOverallStatusSensor(_StatuspageEntity):
 # ---------------------------------------------------------------------------
 
 
-class StatuspageIncidentsSensor(_StatuspageEntity):
-    """Sensor reporting the number of currently active (unresolved) incidents.
-
-    Active = any incident whose status is NOT 'resolved'.
-    Attributes include a summary list of active incidents.
-    """
+class ActiveIncidentsSensor(_StatusPageEntity):
+    """Sensor reporting the number of currently active (unresolved) incidents."""
 
     entity_description = INCIDENTS_DESCRIPTION
 
     def __init__(
         self,
-        coordinator: StatuspageCoordinator,
+        coordinator: StatusPageMonitorCoordinator,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incidents"
+        self._attr_suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_active_incidents"
+        )
 
     @property
     def native_value(self) -> int:
-        """Return number of unresolved incidents."""
         return len(self._active_incidents)
 
     @property
     def icon(self) -> str:
-        """Red icon when there are incidents, neutral when clear."""
         return "mdi:alert-octagon" if self.native_value > 0 else "mdi:check-circle"
 
     @property
-    def _active_incidents(self) -> list[dict]:
-        data = self.coordinator.data or {}
-        return [
-            i
-            for i in data.get("incidents", [])
-            if i.get("status") != "resolved"
-        ]
+    def _active_incidents(self):
+        data: StatusPageData | None = self.coordinator.data
+        return data.incidents if data else []
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        incidents = self._active_incidents
         return {
             "incidents": [
                 {
-                    "id": inc.get("id"),
-                    "name": inc.get("name"),
-                    "status": inc.get("status"),
-                    "impact": inc.get("impact"),
-                    "shortlink": inc.get("shortlink"),
-                    "started_at": inc.get("started_at"),
-                    "updated_at": inc.get("updated_at"),
+                    "id": inc.id,
+                    "name": inc.name,
+                    "status": inc.status,
+                    "impact": inc.impact,
+                    "shortlink": inc.shortlink,
+                    "started_at": inc.started_at,
+                    "updated_at": inc.updated_at,
                 }
-                for inc in incidents
+                for inc in self._active_incidents
             ]
         }
 
@@ -293,46 +294,45 @@ class StatuspageIncidentsSensor(_StatuspageEntity):
 # ---------------------------------------------------------------------------
 
 
-class StatuspageMaintenanceSensor(_StatuspageEntity):
+class ScheduledMaintenanceSensor(_StatusPageEntity):
     """Sensor reporting the number of upcoming scheduled maintenances."""
 
     entity_description = MAINTENANCE_DESCRIPTION
 
     def __init__(
         self,
-        coordinator: StatuspageCoordinator,
+        coordinator: StatusPageMonitorCoordinator,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_scheduled_maintenances"
-
-    @property
-    def native_value(self) -> int:
-        """Return number of scheduled maintenances."""
-        return len((self.coordinator.data or {}).get("scheduled_maintenances", []))
-
-    @property
-    def icon(self) -> str:
-        """Calendar-alert icon when maintenance is planned."""
-        return (
-            "mdi:calendar-alert"
-            if self.native_value > 0
-            else "mdi:calendar-check"
+        self._attr_suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_scheduled_maintenances"
         )
 
     @property
+    def native_value(self) -> int:
+        data: StatusPageData | None = self.coordinator.data
+        return len(data.scheduled_maintenances) if data else 0
+
+    @property
+    def icon(self) -> str:
+        return "mdi:calendar-alert" if self.native_value > 0 else "mdi:calendar-check"
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        maintenances = (self.coordinator.data or {}).get("scheduled_maintenances", [])
+        data: StatusPageData | None = self.coordinator.data
+        maintenances = data.scheduled_maintenances if data else []
         return {
             "maintenances": [
                 {
-                    "id": m.get("id"),
-                    "name": m.get("name"),
-                    "status": m.get("status"),
-                    "impact": m.get("impact"),
-                    "shortlink": m.get("shortlink"),
-                    "scheduled_for": m.get("scheduled_for"),
-                    "scheduled_until": m.get("scheduled_until"),
+                    "id": m.id,
+                    "name": m.name,
+                    "status": m.status,
+                    "impact": m.impact,
+                    "shortlink": m.shortlink,
+                    "scheduled_for": m.scheduled_for,
+                    "scheduled_until": m.scheduled_until,
                 }
                 for m in maintenances
             ]
@@ -344,30 +344,25 @@ class StatuspageMaintenanceSensor(_StatuspageEntity):
 # ---------------------------------------------------------------------------
 
 
-class StatuspageComponentSensor(_StatuspageEntity):
-    """Sensor for a single component on the status page.
-
-    State is one of:
-      operational          → mdi:check-circle
-      degraded_performance → mdi:alert
-      partial_outage       → mdi:alert-circle
-      major_outage         → mdi:close-circle
-      under_maintenance    → mdi:wrench-clock
+class ComponentSensor(_StatusPageEntity):
+    """Sensor for a single service component on the status page.
 
     The sensor is identified by the stable component ``id`` returned by the
-    API, so it survives renames of the component on the status page.
+    provider, so it survives renames of the component on the status page.
     """
 
     def __init__(
         self,
-        coordinator: StatuspageCoordinator,
+        coordinator: StatusPageMonitorCoordinator,
         entry: ConfigEntry,
-        component: dict,
+        component: Component,
     ) -> None:
         super().__init__(coordinator, entry)
-        self._component_id: str = component["id"]
-        # Use the initial name; will update dynamically via native_value / attrs
+        self._component_id: str = component.id
         self._attr_unique_id = f"{entry.entry_id}_{self._component_id}"
+        self._attr_suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_{slugify(component.name)}"
+        )
         self._attr_has_entity_name = True
         self._attr_translation_key = "component_status"
         self._attr_device_class = SensorDeviceClass.ENUM
@@ -375,52 +370,49 @@ class StatuspageComponentSensor(_StatuspageEntity):
 
     @property
     def name(self) -> str:
-        """Return the component name as the entity name."""
-        component = self._component_data
-        return component.get("name") or self._component_id
+        comp = self._component_data
+        return comp.name if comp else self._component_id
 
     @property
-    def native_value(self) -> str | None:
-        """Return the component status."""
-        component = self._component_data
-        status = component.get("status")
-        if status not in COMPONENT_STATUS_OPTIONS:
+    def native_value(self) -> str:
+        comp = self._component_data
+        if not comp:
             return COMPONENT_OPERATIONAL
-        return status
+        return comp.status if comp.status in COMPONENT_STATUS_OPTIONS else COMPONENT_OPERATIONAL
 
     @property
     def icon(self) -> str:
-        """Return an icon that reflects the component status."""
-        return COMPONENT_ICONS.get(
-            self.native_value or COMPONENT_OPERATIONAL, "mdi:help-circle"
-        )
+        return COMPONENT_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
     def icon_color(self) -> str:
-        """Return a color that reflects the component status severity."""
-        return COMPONENT_COLORS.get(self.native_value or COMPONENT_OPERATIONAL, "grey")
+        return COMPONENT_COLORS.get(self.native_value, "grey")
 
     @property
-    def _component_data(self) -> dict:
-        """Look up this component's current data from the coordinator."""
-        for comp in (self.coordinator.data or {}).get("components", []):
-            if comp.get("id") == self._component_id:
+    def _component_data(self) -> Component | None:
+        data: StatusPageData | None = self.coordinator.data
+        if not data:
+            return None
+        for comp in data.components:
+            if comp.id == self._component_id:
                 return comp
-        return {}
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        component = self._component_data
+        comp = self._component_data
+        if not comp:
+            return {"component_id": self._component_id}
         return {
             "component_id": self._component_id,
-            "description": component.get("description"),
-            "group": component.get("group", False),
-            "group_id": component.get("group_id"),
-            "updated_at": component.get("updated_at"),
-            "showcase": component.get("showcase"),
+            "description": comp.description,
+            "group": comp.group,
+            "group_id": comp.group_id,
+            "updated_at": comp.updated_at,
+            "showcase": comp.showcase,
         }
 
     @property
     def available(self) -> bool:
         """Mark unavailable if component data has disappeared from the API."""
-        return super().available and bool(self._component_data)
+        return super().available and self._component_data is not None

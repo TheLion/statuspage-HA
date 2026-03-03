@@ -1,6 +1,6 @@
 {
-  "domain": "atlassian_statuspage",
-  "name": "Atlassian Statuspage",
+  "domain": "statuspage_monitor",
+  "name": "Status Page Monitor",
   "version": "1.0.0",
   "codeowners": [],
   "config_flow": true,

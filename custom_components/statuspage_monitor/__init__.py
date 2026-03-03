@@ -1,18 +1,21 @@
-"""Atlassian Statuspage integration for Home Assistant.
+"""Status Page Monitor integration for Home Assistant.
 
-Fetches status, component health, active incidents and scheduled maintenances
-from any Atlassian Statuspage instance (e.g. https://status.claude.com) via
-the public JSON API (/api/v2/summary.json) and exposes them as HA sensors.
+Monitors any compatible status page and exposes its health data as HA sensors:
+  • Overall status indicator (none / minor / major / critical)
+  • Active incidents count with details
+  • Scheduled maintenances count with details
+  • Per-component status
 
 Multiple status pages can be monitored by adding separate integration entries
 through the UI (Settings → Devices & Services → Add Integration).
 
-Rate limiting
--------------
-Atlassian Statuspage does not publish hard rate-limits for the public JSON
-API, but their terms of service expect reasonable usage.  This integration
-defaults to polling every 60 seconds (configurable, minimum 30 s).  All
-data is retrieved in a single HTTP request per poll cycle.
+Supported platforms
+-------------------
+  • Atlassian Statuspage (statuspage.io) – full support
+  • Status.io – planned
+  • UptimeRobot Status Pages – planned
+
+The provider for each configured URL is auto-detected during setup.
 """
 from __future__ import annotations
 
@@ -22,8 +25,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_SCAN_INTERVAL, CONF_URL, DOMAIN
-from .coordinator import StatuspageCoordinator
+from .const import CONF_PROVIDER, DOMAIN
+from .coordinator import StatusPageMonitorCoordinator
+from .providers import get_provider
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,8 +35,9 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Atlassian Statuspage from a config entry."""
-    coordinator = StatuspageCoordinator(hass, entry)
+    """Set up Status Page Monitor from a config entry."""
+    provider_class = get_provider(entry.data.get(CONF_PROVIDER))
+    coordinator = StatusPageMonitorCoordinator(hass, entry, provider_class)
 
     # Perform the first refresh; raises ConfigEntryNotReady on failure which
     # causes HA to retry setup automatically.

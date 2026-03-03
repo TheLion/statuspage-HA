@@ -6,7 +6,7 @@
 #
 # Adapt all entity IDs below to match your integration.
 # Entity IDs follow the pattern: sensor.<page_name>_<sensor_name>
-# Example: status.claude.com → page name "Claude" → sensor.claude_overall_status
+# Example: status.claude.com → page name "Claude" → sensor.statuspage_claude_overall_status
 #
 # The integration exposes an icon_color attribute on every sensor.
 # Use {{ state_attr(config.entity, 'icon_color') }} in any card's icon_color
@@ -27,18 +27,18 @@ cards:
 
   # ── Overall status ────────────────────────────────────────────────────────
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_overall_status
+    entity: sensor.statuspage_claude_overall_status
     icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 
   # ── Active incidents ──────────────────────────────────────────────────────
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_active_incidents
+    entity: sensor.statuspage_claude_active_incidents
     icon_color: >-
       {{ 'red' if states(config.entity) | int > 0 else 'green' }}
 
   # ── Scheduled maintenances ────────────────────────────────────────────────
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_scheduled_maintenances
+    entity: sensor.statuspage_claude_scheduled_maintenances
     icon_color: >-
       {{ 'blue' if states(config.entity) | int > 0 else 'green' }}
 
@@ -47,13 +47,13 @@ cards:
   # no need to know the raw state values.
 
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_api
+    entity: sensor.statuspage_claude_api
     icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_claude_com
+    entity: sensor.statuspage_claude_claude_com
     icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 
   - type: custom:mushroom-entity-card
-    entity: sensor.claude_claude_ios_app
+    entity: sensor.statuspage_claude_claude_ios_app
     icon_color: "{{ state_attr(config.entity, 'icon_color') }}"

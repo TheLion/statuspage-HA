@@ -2,14 +2,14 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add Atlassian Statuspage",
-        "description": "Enter the base URL of the Atlassian Statuspage you want to monitor (e.g. https://status.claude.com). Multiple pages can be added by repeating this step.",
+        "title": "Add Status Page",
+        "description": "Enter the base URL of the status page you want to monitor (e.g. https://status.claude.com). The provider platform is detected automatically. Multiple pages can be added by repeating this step.",
         "data": {
-          "url": "Statuspage URL",
+          "url": "Status page URL",
           "scan_interval": "Poll interval (seconds)"
         },
         "data_description": {
-          "url": "Base URL of the Atlassian Statuspage (without trailing slash).",
+          "url": "Base URL of the status page (without trailing slash).",
           "scan_interval": "How often to check for updates. Minimum 30 seconds, default 60 seconds."
         }
       }
@@ -17,7 +17,7 @@
     "error": {
       "cannot_connect": "Unable to connect to the status page. Check your network connection and the URL.",
       "invalid_url": "Invalid URL. Make sure it starts with https:// or http://.",
-      "not_a_statuspage": "No Atlassian Statuspage API found at this URL. Make sure the URL points to an Atlassian Statuspage instance.",
+      "not_a_statuspage": "No supported status page API found at this URL. Make sure the URL points to a compatible status page (e.g. Atlassian Statuspage).",
       "timeout": "Connection timed out. The server may be temporarily unavailable.",
       "unknown": "An unexpected error occurred. See the Home Assistant logs for details."
     },
@@ -28,7 +28,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Statuspage Options",
+        "title": "Status Page Monitor Options",
         "data": {
           "scan_interval": "Poll interval (seconds)"
         },

@@ -1,4 +1,4 @@
-"""Config flow for Atlassian Statuspage integration."""
+"""Config flow for Status Page Monitor."""
 from __future__ import annotations
 
 import asyncio
@@ -14,8 +14,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    API_SUMMARY_PATH,
     API_TIMEOUT,
+    CONF_PROVIDER,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     DEFAULT_SCAN_INTERVAL,
@@ -23,30 +23,18 @@ from .const import (
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
-from .coordinator import validate_statuspage_url
+from .coordinator import validate_url
+from .providers import detect_provider
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def _fetch_page_info(hass, url: str) -> dict:
-    """Fetch the summary JSON and return page metadata.
+class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Status Page Monitor.
 
-    Raises aiohttp.ClientError or asyncio.TimeoutError on failure.
-    """
-    api_url = f"{url}{API_SUMMARY_PATH}"
-    session = async_get_clientsession(hass)
-    async with asyncio.timeout(API_TIMEOUT):
-        async with session.get(api_url, headers={"Accept": "application/json"}) as resp:
-            resp.raise_for_status()
-            data = await resp.json(content_type=None)
-    return data
-
-
-class StatuspageConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Atlassian Statuspage.
-
-    Each config entry represents one status page URL.  Multiple entries can
-    be created to monitor several status pages simultaneously.
+    Each config entry represents one status page URL.  The provider platform
+    is auto-detected during setup – no extra step is shown to the user.
+    Multiple entries can be created to monitor several status pages at once.
     """
 
     VERSION = 1
@@ -61,29 +49,36 @@ class StatuspageConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             raw_url = user_input.get(CONF_URL, "")
             try:
-                url = validate_statuspage_url(raw_url)
+                url = validate_url(raw_url)
             except ValueError as err:
                 errors[CONF_URL] = "invalid_url"
                 description_placeholders["error_detail"] = str(err)
             else:
+                session = async_get_clientsession(self.hass)
                 try:
-                    data = await _fetch_page_info(self.hass, url)
+                    provider = await detect_provider(session, url, API_TIMEOUT)
                 except asyncio.TimeoutError:
                     errors["base"] = "timeout"
-                except aiohttp.ClientResponseError as err:
-                    if err.status == 404:
-                        errors[CONF_URL] = "not_a_statuspage"
-                    else:
-                        errors["base"] = "cannot_connect"
-                    _LOGGER.debug("HTTP error during config flow validation: %s", err)
+                    provider = None
                 except aiohttp.ClientError:
                     errors["base"] = "cannot_connect"
+                    provider = None
                 except Exception:  # noqa: BLE001
-                    _LOGGER.exception("Unexpected error during config flow validation")
+                    _LOGGER.exception("Unexpected error during provider detection")
                     errors["base"] = "unknown"
-                else:
-                    page_name = data.get("page", {}).get("name") or url
-                    # Prevent duplicate entries for the same URL
+                    provider = None
+
+                if provider is None and not errors:
+                    errors[CONF_URL] = "not_a_statuspage"
+
+                if not errors and provider is not None:
+                    # Fetch the page name for the config entry title
+                    try:
+                        data = await provider.fetch(session, url, API_TIMEOUT)
+                        page_name = data.page.name
+                    except Exception:  # noqa: BLE001
+                        page_name = url
+
                     await self.async_set_unique_id(url.lower())
                     self._abort_if_unique_id_configured()
 
@@ -91,6 +86,7 @@ class StatuspageConfigFlow(ConfigFlow, domain=DOMAIN):
                         title=page_name,
                         data={
                             CONF_URL: url,
+                            CONF_PROVIDER: provider.ID,
                             CONF_SCAN_INTERVAL: user_input.get(
                                 CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                             ),
@@ -118,12 +114,14 @@ class StatuspageConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> StatuspageOptionsFlow:
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> StatusPageMonitorOptionsFlow:
         """Return the options flow so users can adjust the poll interval."""
-        return StatuspageOptionsFlow(config_entry)
+        return StatusPageMonitorOptionsFlow(config_entry)
 
 
-class StatuspageOptionsFlow(OptionsFlow):
+class StatusPageMonitorOptionsFlow(OptionsFlow):
     """Options flow to adjust settings after initial setup."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
