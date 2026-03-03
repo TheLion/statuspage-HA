@@ -1,0 +1,11 @@
+{
+  "domain": "atlassian_statuspage",
+  "name": "Atlassian Statuspage",
+  "version": "1.0.0",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/TheLion/statuspage-HA",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "integration_type": "service"
+}
