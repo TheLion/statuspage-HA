@@ -17,7 +17,7 @@
     "error": {
       "cannot_connect": "Kan geen verbinding maken met de statuspagina. Controleer uw netwerkverbinding en de URL.",
       "invalid_url": "Ongeldige URL. Zorg ervoor dat de URL begint met https:// of http://.",
-      "not_a_statuspage": "Geen ondersteunde statuspagina-API gevonden op deze URL. Controleer of de URL verwijst naar een compatibele statuspagina (bijv. Atlassian Statuspage).",
+      "not_a_statuspage": "Geen ondersteunde statuspagina-API gevonden op deze URL. Controleer of de URL verwijst naar een compatibele statuspagina-provider.",
       "timeout": "Verbinding verlopen. De server is mogelijk tijdelijk niet beschikbaar.",
       "unknown": "Er is een onverwachte fout opgetreden. Zie de Home Assistant-logboeken voor details."
     },
@@ -41,19 +41,12 @@
   "entity": {
     "sensor": {
       "overall_status": {
-        "name": "Algemene status",
         "state": {
           "none": "Operationeel",
           "minor": "Kleine problemen",
           "major": "Grote problemen",
           "critical": "Kritiek"
         }
-      },
-      "active_incidents": {
-        "name": "Actieve incidenten"
-      },
-      "scheduled_maintenances": {
-        "name": "Geplande onderhoudswerkzaamheden"
       },
       "component_status": {
         "state": {
