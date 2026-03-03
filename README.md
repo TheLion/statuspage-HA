@@ -1,4 +1,4 @@
-# Status Page Monitor – Home Assistant Integration
+# StatusPage Monitor – Home Assistant Integration
 
 Monitor any compatible status page from Home Assistant. The integration
 automatically creates sensors for the overall status, active incidents,
@@ -185,7 +185,7 @@ entities:
 ### Via HACS (recommended)
 
 1. Add this repository as a custom repository in HACS (category: **Integration**).
-2. Install **Status Page Monitor** through HACS.
+2. Install **StatusPage Monitor** through HACS.
 3. Restart Home Assistant.
 
 ---
@@ -196,7 +196,7 @@ entities:
 
 1. Go to **Settings → Devices & Services**.
 2. Click **+ Add Integration**.
-3. Search for **Status Page Monitor**.
+3. Search for **StatusPage Monitor**.
 4. Enter the base URL of the status page to monitor
    (e.g. `https://status.claude.com`).
 5. Set the polling interval (default: 60 seconds).
@@ -210,7 +210,7 @@ separate device in HA with its own set of sensors.
 
 ### Changing the polling interval
 
-1. Go to **Settings → Devices & Services → Status Page Monitor**.
+1. Go to **Settings → Devices & Services → StatusPage Monitor**.
 2. Click **Configure** next to the desired page.
 3. Adjust the interval and click **Save**.
 

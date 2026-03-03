@@ -28,7 +28,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Status Page Monitor-opties",
+        "title": "StatusPage Monitor-opties",
         "data": {
           "scan_interval": "Peilinginterval (seconden)"
         },

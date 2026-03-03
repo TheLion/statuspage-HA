@@ -1,4 +1,4 @@
-"""Data update coordinator for Status Page Monitor."""
+"""Data update coordinator for StatusPage Monitor."""
 from __future__ import annotations
 
 import asyncio

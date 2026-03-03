@@ -1,4 +1,4 @@
-"""Shared data model and provider Protocol for Status Page Monitor.
+"""Shared data model and provider Protocol for StatusPage Monitor.
 
 All provider implementations must:
   1. Set class-level ID and NAME strings.

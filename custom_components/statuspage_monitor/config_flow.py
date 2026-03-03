@@ -1,4 +1,4 @@
-"""Config flow for Status Page Monitor."""
+"""Config flow for StatusPage Monitor."""
 from __future__ import annotations
 
 import asyncio
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Status Page Monitor.
+    """Handle a config flow for StatusPage Monitor.
 
     Each config entry represents one status page URL.  The provider platform
     is auto-detected during setup – no extra step is shown to the user.
