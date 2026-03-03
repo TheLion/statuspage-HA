@@ -64,3 +64,20 @@ COMPONENT_ICONS = {
     COMPONENT_MAJOR_OUTAGE: "mdi:close-circle",
     COMPONENT_MAINTENANCE: "mdi:wrench-clock",
 }
+
+# Icon colors per indicator state (CSS / HA color names)
+INDICATOR_COLORS = {
+    INDICATOR_NONE: "green",
+    INDICATOR_MINOR: "yellow",
+    INDICATOR_MAJOR: "orange",
+    INDICATOR_CRITICAL: "red",
+}
+
+# Icon colors per component status
+COMPONENT_COLORS = {
+    COMPONENT_OPERATIONAL: "green",
+    COMPONENT_DEGRADED: "yellow",
+    COMPONENT_PARTIAL_OUTAGE: "orange",
+    COMPONENT_MAJOR_OUTAGE: "red",
+    COMPONENT_MAINTENANCE: "blue",
+}

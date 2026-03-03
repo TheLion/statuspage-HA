@@ -35,6 +35,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    COMPONENT_COLORS,
     COMPONENT_ICONS,
     COMPONENT_MAJOR_OUTAGE,
     COMPONENT_MAINTENANCE,
@@ -42,6 +43,7 @@ from .const import (
     COMPONENT_STATUS_OPTIONS,
     CONF_URL,
     DOMAIN,
+    INDICATOR_COLORS,
     INDICATOR_CRITICAL,
     INDICATOR_ICONS,
     INDICATOR_MINOR,
@@ -206,6 +208,11 @@ class StatuspageOverallStatusSensor(_StatuspageEntity):
     def icon(self) -> str:
         """Return an icon that reflects the current indicator."""
         return INDICATOR_ICONS.get(self.native_value or INDICATOR_NONE, "mdi:help-circle")
+
+    @property
+    def icon_color(self) -> str:
+        """Return a color that reflects the current indicator severity."""
+        return INDICATOR_COLORS.get(self.native_value or INDICATOR_NONE, "grey")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -387,6 +394,11 @@ class StatuspageComponentSensor(_StatuspageEntity):
         return COMPONENT_ICONS.get(
             self.native_value or COMPONENT_OPERATIONAL, "mdi:help-circle"
         )
+
+    @property
+    def icon_color(self) -> str:
+        """Return a color that reflects the component status severity."""
+        return COMPONENT_COLORS.get(self.native_value or COMPONENT_OPERATIONAL, "grey")
 
     @property
     def _component_data(self) -> dict:
