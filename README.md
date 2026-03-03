@@ -1,11 +1,14 @@
-# Atlassian Statuspage – Home Assistant integratie
+# Atlassian Statuspage – Home Assistant Integration
 
-Bewaakt elke willekeurige [Atlassian Statuspage](https://www.atlassian.com/software/statuspage) vanuit Home Assistant en maakt voor iedere bewaakt pagina automatisch sensoren aan die meekleuren met de actuele dienststatus.
+Monitor any [Atlassian Statuspage](https://www.atlassian.com/software/statuspage)
+from Home Assistant. The integration automatically creates sensors for the
+overall status, active incidents, scheduled maintenances, and every individual
+component.
 
-Voorbeelden van ondersteunde statuspagina's:
+Examples of supported status pages:
 
-| Dienst | URL |
-|--------|-----|
+| Service | URL |
+|---------|-----|
 | Claude (Anthropic) | https://status.claude.com |
 | Atlassian | https://status.atlassian.com |
 | GitHub | https://www.githubstatus.com |
@@ -13,118 +16,116 @@ Voorbeelden van ondersteunde statuspagina's:
 | Datadog | https://status.datadoghq.com |
 | Twilio | https://status.twilio.com |
 
-> Elke dienst die Atlassian Statuspage gebruikt (honderden) wordt ondersteund.
+> Any service that uses Atlassian Statuspage (hundreds of them) is supported.
 
 ---
 
-## Werking
+## How it works
 
-De integratie vraagt iedere 60 seconden (instelbaar) het endpoint
-`/api/v2/summary.json` op. Dit geeft in **één HTTP-aanroep** alle relevante
-informatie terug:
+The integration polls the `/api/v2/summary.json` endpoint on a configurable
+interval (default 60 s). A single HTTP call returns everything needed:
 
-- Paginametadata (naam, URL, tijdstip laatste update)
-- Algemene statusindicator
-- Status van alle individuele componenten
-- Actieve (onopgeloste) incidenten
-- Geplande onderhoudsvensters
+- Page metadata (name, URL, last updated timestamp)
+- Overall status indicator
+- Status of every individual component
+- Active (unresolved) incidents
+- Scheduled maintenance windows
 
-### Waarom JSON API en niet RSS/Atom of webscraping?
+### Why the JSON API and not RSS/Atom or scraping?
 
-| Methode | Componentstatus | Gestructureerd | Stabiel |
-|---------|:--------------:|:--------------:|:-------:|
-| **JSON API** (gekozen) | ✅ | ✅ | ✅ |
-| RSS / Atom feed | ❌ (alleen incidenten) | ✅ | ✅ |
-| Webscraping | ✅ | ❌ | ❌ |
+| Method | Component status | Structured | Stable |
+|--------|:---------------:|:----------:|:------:|
+| **JSON API** (chosen) | ✅ | ✅ | ✅ |
+| RSS / Atom feed | ❌ (incidents only) | ✅ | ✅ |
+| Web scraping | ✅ | ❌ | ❌ |
 
-De RSS/Atom-feeds bevatten alleen incidentgeschiedenis, niet de realtime
-componentstatus. Webscraping breekt bij HTML-aanpassingen. De JSON API is
-de enige optie die alle benodigde informatie stabiel en gestructureerd levert.
+RSS/Atom feeds only contain incident history, not real-time component status.
+Web scraping breaks whenever the HTML changes. The JSON API is the only option
+that delivers all required information in a stable, structured format.
 
 ### Rate limits
 
-Atlassian publiceert geen harde limieten voor de publieke JSON API, maar
-polling sneller dan 30 seconden kan leiden tot tijdelijke IP-blokkering.
-De integratie hanteert:
+Atlassian does not publish hard rate limits for the public JSON API, but
+polling faster than 30 seconds is considered impolite and may result in
+temporary IP-level blocking. The integration enforces:
 
-- **Standaard interval:** 60 seconden
-- **Minimum interval:** 30 seconden
-- **Maximum interval:** 3600 seconden (1 uur)
-- **Time-out per aanroep:** 15 seconden
+- **Default interval:** 60 seconds
+- **Minimum interval:** 30 seconds
+- **Maximum interval:** 3600 seconds (1 hour)
+- **Request timeout:** 15 seconds
 
 ---
 
-## Sensoren
+## Sensors
 
-Per geconfigureerde statuspagina worden de volgende sensoren aangemaakt.
+The following sensors are created for each configured status page.
 
-### Algemene status
+### Overall status
 
-| Entiteit | Sensor type | Mogelijke waarden |
-|----------|-------------|-------------------|
-| `sensor.<naam>_overall_status` | Enum | `none` · `minor` · `major` · `critical` |
+| Entity | Type | Possible values |
+|--------|------|-----------------|
+| `sensor.<name>_overall_status` | Enum | `none` · `minor` · `major` · `critical` |
 
-Attributen: `description`, `page_name`, `page_url`, `page_updated_at`
+Attributes: `description`, `page_name`, `page_url`, `page_updated_at`
 
-### Actieve incidenten
+### Active incidents
 
-| Entiteit | Sensor type | Waarde |
-|----------|-------------|--------|
-| `sensor.<naam>_active_incidents` | Numeriek | Aantal onopgeloste incidenten |
+| Entity | Type | Value |
+|--------|------|-------|
+| `sensor.<name>_active_incidents` | Numeric | Number of unresolved incidents |
 
-Attributen: lijst van incidenten met `name`, `status`, `impact`, `shortlink`,
+Attributes: list of incidents with `name`, `status`, `impact`, `shortlink`,
 `started_at`, `updated_at`
 
-### Geplande onderhoudsvensters
+### Scheduled maintenances
 
-| Entiteit | Sensor type | Waarde |
-|----------|-------------|--------|
-| `sensor.<naam>_scheduled_maintenances` | Numeriek | Aantal geplande onderhoudsvensters |
+| Entity | Type | Value |
+|--------|------|-------|
+| `sensor.<name>_scheduled_maintenances` | Numeric | Number of scheduled maintenance windows |
 
-Attributen: lijst met `name`, `status`, `impact`, `shortlink`,
+Attributes: list of windows with `name`, `status`, `impact`, `shortlink`,
 `scheduled_for`, `scheduled_until`
 
-### Componentstatus (per component)
+### Component status (one sensor per component)
 
-| Entiteit | Sensor type | Mogelijke waarden |
-|----------|-------------|-------------------|
-| `sensor.<naam>_<component_id>` | Enum | zie tabel hieronder |
+| Entity | Type | Possible values |
+|--------|------|-----------------|
+| `sensor.<name>_<component_id>` | Enum | see table below |
 
-Attributen: `component_id`, `description`, `group`, `group_id`, `updated_at`,
+Attributes: `component_id`, `description`, `group`, `group_id`, `updated_at`,
 `showcase`
 
-Componenten worden **dynamisch aangemaakt**: nieuwe componenten die verschijnen
-na de eerste poll worden automatisch toegevoegd als sensor.
+Components are **discovered dynamically**: new components that appear after the
+first poll are automatically added as sensors.
 
 ---
 
-## Statuskleuren en iconen
+## Status values and icons
 
-Elke sensor heeft een **dynamisch icoon** dat direct de status weergeeft.
+Every sensor has a **dynamic icon** that reflects the current status at a glance.
 
-### Algemene status (indicator)
+### Overall status (indicator)
 
-| Status | HA-waarde | Label | Icoon |
-|--------|-----------|-------|-------|
-| Alles operationeel | `none` | Operationeel | `mdi:check-circle` |
-| Kleine storing | `minor` | Kleine problemen | `mdi:alert` |
-| Grote storing | `major` | Grote problemen | `mdi:alert-circle` |
-| Kritieke storing | `critical` | Kritiek | `mdi:close-circle` |
+| Status | HA value | Icon |
+|--------|----------|------|
+| All systems operational | `none` | `mdi:check-circle` |
+| Minor disruption | `minor` | `mdi:alert` |
+| Major disruption | `major` | `mdi:alert-circle` |
+| Critical outage | `critical` | `mdi:close-circle` |
 
-### Componentstatus
+### Component status
 
-| Status | HA-waarde | Label | Icoon |
-|--------|-----------|-------|-------|
-| Volledig operationeel | `operational` | Operationeel | `mdi:check-circle` |
-| Verminderde prestaties | `degraded_performance` | Verminderde prestaties | `mdi:alert` |
-| Gedeeltelijke storing | `partial_outage` | Gedeeltelijke storing | `mdi:alert-circle` |
-| Grote storing | `major_outage` | Grote storing | `mdi:close-circle` |
-| In onderhoud | `under_maintenance` | In onderhoud | `mdi:wrench-clock` |
+| Status | HA value | Icon |
+|--------|----------|------|
+| Fully operational | `operational` | `mdi:check-circle` |
+| Degraded performance | `degraded_performance` | `mdi:alert` |
+| Partial outage | `partial_outage` | `mdi:alert-circle` |
+| Major outage | `major_outage` | `mdi:close-circle` |
+| Under maintenance | `under_maintenance` | `mdi:wrench-clock` |
 
-### Icoontint activeren in Lovelace
+### Enabling icon colour in Lovelace
 
-Voeg `state_color: true` toe aan een Entity-card om de icoontint automatisch
-te laten meekleuren:
+Add `state_color: true` to an Entity card to apply the colour automatically:
 
 ```yaml
 type: entity
@@ -132,7 +133,7 @@ entity: sensor.claude_overall_status
 state_color: true
 ```
 
-Of in een Entities-kaart:
+Or inside an Entities card:
 
 ```yaml
 type: entities
@@ -145,56 +146,55 @@ entities:
 
 ---
 
-## Installatie
+## Installation
 
-### Handmatig
+### Manual
 
-1. Download of clone deze repository.
-2. Kopieer de map `custom_components/atlassian_statuspage/` naar de map
-   `config/custom_components/` van uw Home Assistant installatie.
-3. Start Home Assistant opnieuw op.
+1. Download or clone this repository.
+2. Copy `custom_components/atlassian_statuspage/` to the
+   `config/custom_components/` directory of your Home Assistant installation.
+3. Restart Home Assistant.
 
-### Via HACS (aanbevolen)
+### Via HACS (recommended)
 
-1. Voeg deze repository toe als aangepaste repository in HACS
-   (categorie: **Integratie**).
-2. Installeer **Atlassian Statuspage** via HACS.
-3. Start Home Assistant opnieuw op.
-
----
-
-## Configuratie
-
-### Eerste keer instellen
-
-1. Ga naar **Instellingen → Apparaten & Diensten**.
-2. Klik op **+ Integratie toevoegen**.
-3. Zoek naar **Atlassian Statuspage**.
-4. Vul de basis-URL in van de te bewaken statuspagina
-   (bijv. `https://status.claude.com`).
-5. Stel het peilinginterval in (standaard: 60 seconden).
-6. Klik op **Verzenden**. De naam wordt automatisch opgehaald uit de API.
-
-### Meerdere statuspagina's
-
-Herhaal stap 1–6 voor elke extra statuspagina. Elke pagina wordt een
-afzonderlijk apparaat in HA met eigen sensoren.
-
-### Peilinginterval aanpassen
-
-1. Ga naar **Instellingen → Apparaten & Diensten → Atlassian Statuspage**.
-2. Klik op **Configureer** naast de gewenste pagina.
-3. Pas het interval aan en klik op **Opslaan**.
+1. Add this repository as a custom repository in HACS (category: **Integration**).
+2. Install **Atlassian Statuspage** through HACS.
+3. Restart Home Assistant.
 
 ---
 
-## Lovelace voorbeeldconfiguraties
+## Configuration
 
-### Statusoverzicht (meerdere diensten)
+### Initial setup
+
+1. Go to **Settings → Devices & Services**.
+2. Click **+ Add Integration**.
+3. Search for **Atlassian Statuspage**.
+4. Enter the base URL of the status page to monitor
+   (e.g. `https://status.claude.com`).
+5. Set the polling interval (default: 60 seconds).
+6. Click **Submit**. The page name is fetched automatically from the API.
+
+### Multiple status pages
+
+Repeat the steps above for each additional status page. Every page becomes a
+separate device in HA with its own set of sensors.
+
+### Changing the polling interval
+
+1. Go to **Settings → Devices & Services → Atlassian Statuspage**.
+2. Click **Configure** next to the desired page.
+3. Adjust the interval and click **Save**.
+
+---
+
+## Lovelace example configurations
+
+### Status overview (multiple services)
 
 ```yaml
 type: entities
-title: Dienststatus
+title: Service Status
 entities:
   - entity: sensor.claude_overall_status
     name: Claude (Anthropic)
@@ -207,11 +207,11 @@ entities:
     state_color: true
 ```
 
-### Componentdetails met Markdown-kaart
+### Component details with a Markdown card
 
 ```yaml
 type: markdown
-title: Claude – Componentstatus
+title: Claude – Component Status
 content: >
   | Component | Status |
   |-----------|--------|
@@ -223,45 +223,44 @@ content: >
   {% endfor %}
 ```
 
-### Melding bij storing (automatisering)
+### Notification on outage (automation)
 
 ```yaml
-alias: Melding bij Claude-storing
+alias: Notify on Claude outage
 trigger:
   - platform: state
     entity_id: sensor.claude_overall_status
     from: "none"
 condition: []
 action:
-  - service: notify.mobile_app_mijn_telefoon
+  - service: notify.mobile_app_my_phone
     data:
-      title: "Claude statuswijziging"
+      title: "Claude status change"
       message: >
-        Status is veranderd naar
-        {{ states('sensor.claude_overall_status') }}.
+        Status changed to {{ states('sensor.claude_overall_status') }}.
         {{ state_attr('sensor.claude_overall_status', 'description') }}
 ```
 
 ---
 
-## Bestandsstructuur
+## File structure
 
 ```
 custom_components/atlassian_statuspage/
-├── __init__.py          # Integratie-entry point, setup en teardown
-├── manifest.json        # HA-integratiemetadata
-├── const.py             # Constanten, statuswaarden en iconen
-├── config_flow.py       # UI-configuratiestroom (config + opties)
-├── coordinator.py       # DataUpdateCoordinator, HTTP-polling
-├── sensor.py            # Alle sensorentiteiten
-├── strings.json         # UI-teksten (config flow)
+├── __init__.py          # Integration entry point, setup and teardown
+├── manifest.json        # HA integration metadata
+├── const.py             # Constants, status values and icons
+├── config_flow.py       # UI config flow (config + options)
+├── coordinator.py       # DataUpdateCoordinator, HTTP polling
+├── sensor.py            # All sensor entities
+├── strings.json         # UI strings (config flow)
 └── translations/
-    ├── en.json          # Engelse vertalingen
-    └── nl.json          # Nederlandse vertalingen
+    ├── en.json          # English translations
+    └── nl.json          # Dutch translations
 ```
 
 ---
 
-## Licentie
+## License
 
-MIT – zie [LICENSE](LICENSE).
+MIT – see [LICENSE](LICENSE).
