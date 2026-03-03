@@ -1,0 +1,82 @@
+# Atlassian Statuspage – Lovelace example with Mushroom Cards
+#
+# Requirements:
+#   - Mushroom Cards: https://github.com/piitaya/lovelace-mushroom
+#     Install via HACS → Frontend → Mushroom
+#
+# Adapt all entity IDs below to match your integration.
+# Entity IDs follow the pattern: sensor.<page_name>_<sensor_name>
+# Example: status.claude.com → page name "Claude" → sensor.claude_overall_status
+#
+# Color mapping used throughout this example:
+#   Component / indicator status  │ Color
+#   ──────────────────────────────┼────────
+#   Operational / None            │ green
+#   Degraded Performance / Minor  │ yellow
+#   Partial Outage / Major        │ orange
+#   Major Outage / Critical       │ red
+#   Under Maintenance             │ blue
+
+# ---------------------------------------------------------------------------
+# Reusable color templates (YAML anchors)
+# ---------------------------------------------------------------------------
+#
+# Overall-status color template
+x-indicator-color: &indicator_color >-
+  {% set s = states(config.entity) %}
+  {% if   s == 'none'     %} green
+  {% elif s == 'minor'    %} yellow
+  {% elif s == 'major'    %} orange
+  {% elif s == 'critical' %} red
+  {% else %}                 grey
+  {% endif %}
+
+# Component-status color template
+x-component-color: &component_color >-
+  {% set s = states(config.entity) %}
+  {% if   s == 'operational'          %} green
+  {% elif s == 'degraded_performance' %} yellow
+  {% elif s == 'partial_outage'       %} orange
+  {% elif s == 'major_outage'         %} red
+  {% elif s == 'under_maintenance'    %} blue
+  {% else %}                             grey
+  {% endif %}
+
+# ---------------------------------------------------------------------------
+# Dashboard card
+# ---------------------------------------------------------------------------
+type: vertical-stack
+cards:
+
+  # ── Overall status ────────────────────────────────────────────────────────
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_overall_status
+    icon_color: *indicator_color
+
+  # ── Active incidents ──────────────────────────────────────────────────────
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_active_incidents
+    icon_color: >-
+      {{ 'red' if states('sensor.claude_active_incidents') | int > 0 else 'green' }}
+
+  # ── Scheduled maintenances ────────────────────────────────────────────────
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_scheduled_maintenances
+    icon_color: >-
+      {{ 'blue' if states('sensor.claude_scheduled_maintenances') | int > 0 else 'green' }}
+
+  # ── Components ────────────────────────────────────────────────────────────
+  # Add one block per component. The &component_color anchor keeps the
+  # template DRY; each card automatically evaluates against its own entity.
+
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_api
+    icon_color: *component_color
+
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_claude_com
+    icon_color: *component_color
+
+  - type: custom:mushroom-entity-card
+    entity: sensor.claude_claude_ios_app
+    icon_color: *component_color

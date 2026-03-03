@@ -41,7 +41,6 @@
   "entity": {
     "sensor": {
       "overall_status": {
-        "name": "Algemene status",
         "state": {
           "none": "Operationeel",
           "minor": "Kleine problemen",
@@ -49,12 +48,8 @@
           "critical": "Kritiek"
         }
       },
-      "active_incidents": {
-        "name": "Actieve incidenten"
-      },
-      "scheduled_maintenances": {
-        "name": "Geplande onderhoudsvensters"
-      },
+      "active_incidents": {},
+      "scheduled_maintenances": {},
       "component_status": {
         "state": {
           "operational": "Operationeel",
