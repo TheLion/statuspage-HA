@@ -4,23 +4,13 @@ Creates the following sensors per configured status page:
 
   • Overall status          – enum: none / minor / major / critical
   • Active incidents        – integer count with incident details as attributes
+  • Active incident body    – latest update text of the first active incident
   • Scheduled maintenances  – integer count with maintenance details
   • Per-component status    – enum: operational / degraded_performance /
                               partial_outage / major_outage / under_maintenance
 
-Sensor icons change dynamically to provide an immediate visual colour cue:
-  ✅  mdi:check-circle      → operational / no issues
-  ⚠️  mdi:alert             → degraded / minor issue
-  🔶  mdi:alert-circle      → partial outage / major issue
-  🔴  mdi:close-circle      → major outage / critical issue
-  🔧  mdi:wrench-clock      → under maintenance
-
-The icon_color entity property is set automatically so Lovelace cards that
-support it (Mushroom, standard Entity card with state_color: true) will show
-the correct colour without any manual template configuration.
-
-For Mushroom cards that need an explicit template, use:
-  icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
+Sensor icons and the icon_color attribute change dynamically to reflect the
+current status at a glance.
 """
 from __future__ import annotations
 
@@ -93,8 +83,8 @@ MAINTENANCE_DESCRIPTION = SensorEntityDescription(
 )
 
 INCIDENT_BODY_DESCRIPTION = SensorEntityDescription(
-    key="active_incident_body",
-    translation_key="active_incident_body",
+    key="active_incident_description",
+    translation_key="active_incident_description",
     has_entity_name=True,
     icon="mdi:text-box-outline",
 )
@@ -242,6 +232,7 @@ class OverallStatusSensor(_StatusPageEntity):
             "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
             "page_updated_at": data.page.updated_at,
+            "icon_color": self.icon_color,
         }
 
 
@@ -318,9 +309,9 @@ class ActiveIncidentBodySensor(_StatusPageEntity):
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_active_incident_body"
+        self._attr_unique_id = f"{entry.entry_id}_active_incident_description"
         self._attr_suggested_object_id = (
-            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_body"
+            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_description"
         )
 
     @property
@@ -464,7 +455,7 @@ class ComponentSensor(_StatusPageEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         comp = self._component_data
         if not comp:
-            return {"component_id": self._component_id}
+            return {"component_id": self._component_id, "icon_color": self.icon_color}
         return {
             "component_id": self._component_id,
             "description": comp.description,
@@ -472,6 +463,7 @@ class ComponentSensor(_StatusPageEntity):
             "group_id": comp.group_id,
             "updated_at": comp.updated_at,
             "showcase": comp.showcase,
+            "icon_color": self.icon_color,
         }
 
     @property

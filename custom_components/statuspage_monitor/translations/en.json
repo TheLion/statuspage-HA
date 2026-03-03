@@ -52,8 +52,8 @@
       "active_incidents": {
         "name": "Active Incidents"
       },
-      "active_incident_body": {
-        "name": "Active Incident Body"
+      "active_incident_description": {
+        "name": "Active Incident Description"
       },
       "scheduled_maintenances": {
         "name": "Scheduled Maintenances"

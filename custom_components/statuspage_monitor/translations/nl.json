@@ -48,9 +48,6 @@
           "critical": "Kritiek"
         }
       },
-      "active_incident_body": {
-        "name": "Actief incident – tekst"
-      },
       "component_status": {
         "state": {
           "operational": "Operationeel",
