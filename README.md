@@ -160,30 +160,6 @@ current status at a glance — no manual template configuration required.
 | Major outage | `major_outage` | `mdi:close-circle` | 🔴 red |
 | Under maintenance | `under_maintenance` | `mdi:wrench-clock` | 🔵 blue |
 
-### Icon colours in Lovelace
-
-The integration sets the `icon_color` entity property automatically. Cards
-that read this property will colour the icon without any extra configuration.
-
-For **Mushroom Cards**, add this to the `icon_color` field (works in both the
-GUI editor and raw YAML mode):
-
-```yaml
-icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
-```
-
-For the standard **Entity card** with `state_color: true`:
-
-```yaml
-type: entities
-title: Claude Status
-entities:
-  - entity: sensor.statuspage_claude_overall_status
-    state_color: true
-  - entity: sensor.statuspage_claude_active_incidents
-    state_color: true
-```
-
 ---
 
 ## Installation
@@ -229,60 +205,33 @@ separate device in HA with its own set of sensors.
 
 ---
 
-## Lovelace example configurations
-
-A ready-to-use card configuration is provided in
-[`lovelace_example.yaml`](lovelace_example.yaml).
-
-### Status overview (multiple services)
-
-```yaml
-type: entities
-title: Service Status
-entities:
-  - entity: sensor.statuspage_claude_overall_status
-    name: Claude (Anthropic)
-    state_color: true
-  - entity: sensor.statuspage_atlassian_overall_status
-    name: Atlassian
-    state_color: true
-  - entity: sensor.statuspage_github_overall_status
-    name: GitHub
-    state_color: true
-```
-
-### Mushroom cards
-
-```yaml
-type: custom:mushroom-entity-card
-entity: sensor.statuspage_claude_overall_status
-icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
-```
-
----
-
 ## File structure
 
 ```
-custom_components/statuspage_monitor/
-├── __init__.py              # Integration entry point, setup and teardown
-├── manifest.json            # HA integration metadata
-├── const.py                 # Constants, normalised status values, icons, colours
-├── config_flow.py           # UI config flow (config + options)
-├── coordinator.py           # DataUpdateCoordinator, delegates to provider
-├── sensor.py                # All sensor entities
-├── icon.png                 # Integration icon (256×256)
-├── logo.png                 # Integration logo (512×512)
-├── strings.json             # UI strings (config flow)
-├── providers/
-│   ├── __init__.py          # Provider registry and auto-detection
-│   ├── base.py              # StatusPageData dataclasses + StatusPageProvider Protocol
-│   ├── statuspage_io.py     # ✅ Atlassian Statuspage (statuspage.io) – full implementation
-│   ├── status_io.py         # 🔜 Status.io – stub with implementation guide
-│   └── uptimerobot.py       # 🔜 UptimeRobot – stub with implementation guide
-└── translations/
-    ├── en.json              # English translations
-    └── nl.json              # Dutch translations
+statuspage-HA/
+├── hacs.json                # HACS metadata
+├── LICENSE                  # MIT licence
+├── README.md
+├── brand/
+│   ├── icon.png             # Integration icon (256×256)
+│   └── logo.png             # Integration logo (512×512)
+└── custom_components/statuspage_monitor/
+    ├── __init__.py          # Integration entry point, setup and teardown
+    ├── manifest.json        # HA integration metadata
+    ├── const.py             # Constants, normalised status values, icons, colours
+    ├── config_flow.py       # UI config flow (config + options)
+    ├── coordinator.py       # DataUpdateCoordinator, delegates to provider
+    ├── sensor.py            # All sensor entities
+    ├── strings.json         # UI strings (config flow)
+    ├── providers/
+    │   ├── __init__.py      # Provider registry and auto-detection
+    │   ├── base.py          # StatusPageData dataclasses + StatusPageProvider Protocol
+    │   ├── statuspage_io.py # ✅ Atlassian Statuspage (statuspage.io) – full implementation
+    │   ├── status_io.py     # 🔜 Status.io – stub with implementation guide
+    │   └── uptimerobot.py   # 🔜 UptimeRobot – stub with implementation guide
+    └── translations/
+        ├── en.json          # English translations
+        └── nl.json          # Dutch translations
 ```
 
 ---

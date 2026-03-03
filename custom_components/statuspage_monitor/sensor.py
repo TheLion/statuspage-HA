@@ -4,23 +4,13 @@ Creates the following sensors per configured status page:
 
   • Overall status          – enum: none / minor / major / critical
   • Active incidents        – integer count with incident details as attributes
+  • Active incident body    – latest update text of the first active incident
   • Scheduled maintenances  – integer count with maintenance details
   • Per-component status    – enum: operational / degraded_performance /
                               partial_outage / major_outage / under_maintenance
 
-Sensor icons change dynamically to provide an immediate visual colour cue:
-  ✅  mdi:check-circle      → operational / no issues
-  ⚠️  mdi:alert             → degraded / minor issue
-  🔶  mdi:alert-circle      → partial outage / major issue
-  🔴  mdi:close-circle      → major outage / critical issue
-  🔧  mdi:wrench-clock      → under maintenance
-
-The icon_color entity property is set automatically so Lovelace cards that
-support it (Mushroom, standard Entity card with state_color: true) will show
-the correct colour without any manual template configuration.
-
-For Mushroom cards that need an explicit template, use:
-  icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
+Sensor icons and the icon_color attribute change dynamically to reflect the
+current status at a glance.
 """
 from __future__ import annotations
 
