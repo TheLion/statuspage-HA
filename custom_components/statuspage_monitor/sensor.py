@@ -92,6 +92,13 @@ MAINTENANCE_DESCRIPTION = SensorEntityDescription(
     icon="mdi:calendar-clock",
 )
 
+INCIDENT_BODY_DESCRIPTION = SensorEntityDescription(
+    key="active_incident_body",
+    translation_key="active_incident_body",
+    has_entity_name=True,
+    icon="mdi:text-box-outline",
+)
+
 
 # ---------------------------------------------------------------------------
 # Platform setup
@@ -124,6 +131,7 @@ async def async_setup_entry(
                 [
                     OverallStatusSensor(coordinator, entry),
                     ActiveIncidentsSensor(coordinator, entry),
+                    ActiveIncidentBodySensor(coordinator, entry),
                     ScheduledMaintenanceSensor(coordinator, entry),
                 ]
             )
@@ -286,6 +294,60 @@ class ActiveIncidentsSensor(_StatusPageEntity):
                 }
                 for inc in self._active_incidents
             ]
+        }
+
+
+# ---------------------------------------------------------------------------
+# Active incident body sensor
+# ---------------------------------------------------------------------------
+
+
+class ActiveIncidentBodySensor(_StatusPageEntity):
+    """Sensor reporting the latest update text of the first active incident.
+
+    The state is the body text of the most recent incident update, ready to
+    use directly in a Markdown card or as a notification message.  When there
+    are no active incidents the state is None (shown as 'unknown' in HA).
+    """
+
+    entity_description = INCIDENT_BODY_DESCRIPTION
+
+    def __init__(
+        self,
+        coordinator: StatusPageMonitorCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_active_incident_body"
+        self._attr_suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_body"
+        )
+
+    @property
+    def _first_incident(self):
+        data: StatusPageData | None = self.coordinator.data
+        incidents = data.incidents if data else []
+        return incidents[0] if incidents else None
+
+    @property
+    def native_value(self) -> str | None:
+        inc = self._first_incident
+        return inc.body if inc else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:text-box-outline" if self._first_incident else "mdi:text-box-check-outline"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        inc = self._first_incident
+        if not inc:
+            return {}
+        return {
+            "incident_id": inc.id,
+            "incident_name": inc.name,
+            "incident_status": inc.status,
+            "incident_impact": inc.impact,
         }
 
 

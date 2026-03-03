@@ -100,6 +100,19 @@ Attributes: `description`, `page_name`, `page_url`, `page_updated_at`
 Attributes: list of incidents with `name`, `status`, `impact`, `shortlink`,
 `started_at`, `updated_at`
 
+### Active incident body
+
+| Entity | Type | Value |
+|--------|------|-------|
+| `sensor.statuspage_<name>_active_incident_body` | Text | Latest update text of the first active incident |
+
+The state contains the body text of the most recent update of the first active
+incident — ready to use directly in a dashboard Markdown card or as the
+`message` field in a notification automation. When there are no active
+incidents the sensor state is `unknown`.
+
+Attributes: `incident_name`, `incident_status`, `incident_impact`, `incident_id`
+
 ### Scheduled maintenances
 
 | Entity | Type | Value |
@@ -244,24 +257,6 @@ entities:
 type: custom:mushroom-entity-card
 entity: sensor.statuspage_claude_overall_status
 icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
-```
-
-### Notification on outage (automation)
-
-```yaml
-alias: Notify on Claude outage
-trigger:
-  - platform: state
-    entity_id: sensor.statuspage_claude_overall_status
-    from: "none"
-condition: []
-action:
-  - service: notify.mobile_app_my_phone
-    data:
-      title: "Claude status change"
-      message: >
-        Status changed to {{ states('sensor.statuspage_claude_overall_status') }}.
-        {{ state_attr('sensor.statuspage_claude_overall_status', 'description') }}
 ```
 
 ---
