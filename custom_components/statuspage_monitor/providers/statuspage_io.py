@@ -127,6 +127,10 @@ class StatuspageIoProvider:
                     shortlink=inc.get("shortlink"),
                     started_at=inc.get("started_at"),
                     updated_at=inc.get("updated_at"),
+                    body=next(
+                        (u["body"] for u in inc.get("incident_updates", []) if u.get("body")),
+                        None,
+                    ),
                 )
                 for inc in raw.get("incidents", [])
                 if inc.get("status") != "resolved"

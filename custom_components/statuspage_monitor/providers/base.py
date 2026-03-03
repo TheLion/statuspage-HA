@@ -59,6 +59,7 @@ class Incident:
     shortlink: str | None = None
     started_at: str | None = None
     updated_at: str | None = None
+    body: str | None = None
 
 
 @dataclass
