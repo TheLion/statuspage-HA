@@ -232,6 +232,7 @@ class OverallStatusSensor(_StatusPageEntity):
             "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
             "page_updated_at": data.page.updated_at,
+            "icon_color": self.icon_color,
         }
 
 
@@ -454,7 +455,7 @@ class ComponentSensor(_StatusPageEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         comp = self._component_data
         if not comp:
-            return {"component_id": self._component_id}
+            return {"component_id": self._component_id, "icon_color": self.icon_color}
         return {
             "component_id": self._component_id,
             "description": comp.description,
@@ -462,6 +463,7 @@ class ComponentSensor(_StatusPageEntity):
             "group_id": comp.group_id,
             "updated_at": comp.updated_at,
             "showcase": comp.showcase,
+            "icon_color": self.icon_color,
         }
 
     @property
