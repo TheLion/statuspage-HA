@@ -100,11 +100,11 @@ Attributes: `description`, `page_name`, `page_url`, `page_updated_at`
 Attributes: list of incidents with `name`, `status`, `impact`, `shortlink`,
 `started_at`, `updated_at`
 
-### Active incident body
+### Active incident description
 
 | Entity | Type | Value |
 |--------|------|-------|
-| `sensor.statuspage_<name>_active_incident_body` | Text | Latest update text of the first active incident |
+| `sensor.statuspage_<name>_active_incident_description` | Text | Latest update text of the first active incident |
 
 The state contains the body text of the most recent update of the first active
 incident — ready to use directly in a dashboard Markdown card or as the

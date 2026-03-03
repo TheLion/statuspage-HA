@@ -38,17 +38,21 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 async def _async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Rename legacy entity IDs to their current canonical form.
 
-    Two migrations are applied in order:
+    Three migrations are applied in order:
 
     1. Missing ``statuspage_`` prefix — older versions did not set
        ``suggested_object_id``, so HA generated IDs from the device + entity
        name (e.g. ``sensor.claude_overall_status``).  These are renamed to
        include the prefix (``sensor.statuspage_claude_overall_status``).
 
-    2. Dutch ``actief_incident_tekst`` suffix — the active-incident-body sensor
-       was briefly shipped with a Dutch display name ("Actief incident – tekst")
+    2. Dutch ``actief_incident_tekst`` suffix — the active-incident sensor was
+       briefly shipped with a Dutch display name ("Actief incident – tekst")
        and no ``suggested_object_id``, causing HA to derive a Dutch entity ID.
-       These are renamed to the English ``active_incident_body`` suffix.
+       These are renamed directly to the canonical ``active_incident_description``
+       suffix.
+
+    3. Intermediate ``active_incident_body`` suffix — a short-lived English name
+       before the sensor was renamed to ``active_incident_description``.
     """
     ent_reg = er.async_get(hass)
 
@@ -62,12 +66,23 @@ async def _async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> 
             ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
             _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
 
-    # Pass 2: rename Dutch active-incident-body suffix to English.
+    # Pass 2: rename Dutch suffix directly to current canonical English suffix.
     for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
         if not entity_entry.entity_id.endswith("_actief_incident_tekst"):
             continue
         new_entity_id = entity_entry.entity_id.replace(
-            "_actief_incident_tekst", "_active_incident_body"
+            "_actief_incident_tekst", "_active_incident_description"
+        )
+        if ent_reg.async_get(new_entity_id) is None:
+            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
+            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
+
+    # Pass 3: rename intermediate active_incident_body suffix to active_incident_description.
+    for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if not entity_entry.entity_id.endswith("_active_incident_body"):
+            continue
+        new_entity_id = entity_entry.entity_id.replace(
+            "_active_incident_body", "_active_incident_description"
         )
         if ent_reg.async_get(new_entity_id) is None:
             ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)

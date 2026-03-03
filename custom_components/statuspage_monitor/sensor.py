@@ -83,8 +83,8 @@ MAINTENANCE_DESCRIPTION = SensorEntityDescription(
 )
 
 INCIDENT_BODY_DESCRIPTION = SensorEntityDescription(
-    key="active_incident_body",
-    translation_key="active_incident_body",
+    key="active_incident_description",
+    translation_key="active_incident_description",
     has_entity_name=True,
     icon="mdi:text-box-outline",
 )
@@ -309,9 +309,9 @@ class ActiveIncidentBodySensor(_StatusPageEntity):
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_active_incident_body"
+        self._attr_unique_id = f"{entry.entry_id}_active_incident_description"
         self._attr_suggested_object_id = (
-            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_body"
+            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_description"
         )
 
     @property
