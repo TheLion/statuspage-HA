@@ -9,8 +9,9 @@ Creates the following sensors per configured status page:
   • Per-component status    – enum: operational / degraded_performance /
                               partial_outage / major_outage / under_maintenance
 
-Sensor icons and the icon_color attribute change dynamically to reflect the
-current status at a glance.
+The icon_color attribute is exposed via extra_state_attributes so that
+Mushroom template cards can read it with:
+  icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 """
 from __future__ import annotations
 
@@ -219,10 +220,6 @@ class OverallStatusSensor(_StatusPageEntity):
         return INDICATOR_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
-    def icon_color(self) -> str:
-        return INDICATOR_COLORS.get(self.native_value, "grey")
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data: StatusPageData | None = self.coordinator.data
         if not data:
@@ -232,7 +229,7 @@ class OverallStatusSensor(_StatusPageEntity):
             "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
             "page_updated_at": data.page.updated_at,
-            "icon_color": self.icon_color,
+            "icon_color": INDICATOR_COLORS.get(self.native_value, "grey"),
         }
 
 
@@ -438,10 +435,6 @@ class ComponentSensor(_StatusPageEntity):
         return COMPONENT_ICONS.get(self.native_value, "mdi:help-circle")
 
     @property
-    def icon_color(self) -> str:
-        return COMPONENT_COLORS.get(self.native_value, "grey")
-
-    @property
     def _component_data(self) -> Component | None:
         data: StatusPageData | None = self.coordinator.data
         if not data:
@@ -454,8 +447,9 @@ class ComponentSensor(_StatusPageEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         comp = self._component_data
+        color = COMPONENT_COLORS.get(self.native_value, "grey")
         if not comp:
-            return {"component_id": self._component_id, "icon_color": self.icon_color}
+            return {"component_id": self._component_id, "icon_color": color}
         return {
             "component_id": self._component_id,
             "description": comp.description,
@@ -463,7 +457,7 @@ class ComponentSensor(_StatusPageEntity):
             "group_id": comp.group_id,
             "updated_at": comp.updated_at,
             "showcase": comp.showcase,
-            "icon_color": self.icon_color,
+            "icon_color": color,
         }
 
     @property
