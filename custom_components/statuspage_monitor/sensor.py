@@ -410,9 +410,11 @@ class ComponentSensor(_StatusPageEntity):
         super().__init__(coordinator, entry)
         self._component_id: str = component.id
         self._attr_unique_id = f"{entry.entry_id}_{self._component_id}"
-        self._attr_suggested_object_id = (
-            f"statuspage_{_page_slug(coordinator, entry)}_{slugify(component.name)}"
-        )
+        page_slug = _page_slug(coordinator, entry)
+        component_slug = slugify(component.name)
+        if component_slug.startswith(page_slug + "_"):
+            component_slug = component_slug[len(page_slug) + 1:]
+        self._attr_suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
         self._attr_has_entity_name = True
         self._attr_translation_key = "component_status"
         self._attr_device_class = SensorDeviceClass.ENUM
@@ -421,7 +423,14 @@ class ComponentSensor(_StatusPageEntity):
     @property
     def name(self) -> str:
         comp = self._component_data
-        return comp.name if comp else self._component_id
+        if not comp:
+            return self._component_id
+        data = self.coordinator.data
+        page_name = data.page.name if data else ""
+        name = comp.name
+        if page_name and name.lower().startswith(page_name.lower() + " "):
+            name = name[len(page_name) + 1:]
+        return name
 
     @property
     def native_value(self) -> str:
