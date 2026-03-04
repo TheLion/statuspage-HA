@@ -149,6 +149,7 @@ class InstatusProvider:
     ID: ClassVar[str] = "instatus"
     NAME: ClassVar[str] = "Instatus"
     SHORT_NAME: ClassVar[str] = "Instatus"
+    LOGO_PATH: ClassVar[str] = "/statuspage_monitor/logos/instatus.svg"
     SUPPORTS_INCIDENT_BODY: ClassVar[bool] = False
 
     @classmethod

@@ -53,6 +53,7 @@ class StatuspageIoProvider:
     ID: ClassVar[str] = "statuspage_io"
     NAME: ClassVar[str] = "Atlassian Statuspage (Statuspage.io)"
     SHORT_NAME: ClassVar[str] = "Atlassian"
+    LOGO_PATH: ClassVar[str] = "/statuspage_monitor/logos/statuspage_io.svg"
 
     @classmethod
     async def detect(
@@ -62,16 +63,34 @@ class StatuspageIoProvider:
         timeout: int,
     ) -> bool:
         """Return True if the URL responds with a valid Statuspage.io summary."""
+        api_url = f"{url}{_API_PATH}"
         try:
             async with asyncio.timeout(timeout):
-                async with session.get(
-                    f"{url}{_API_PATH}", headers=_HEADERS
-                ) as resp:
+                async with session.get(api_url, headers=_HEADERS) as resp:
                     if resp.status != 200:
+                        _LOGGER.debug(
+                            "Statuspage.io detect: %s returned HTTP %s",
+                            api_url,
+                            resp.status,
+                        )
                         return False
                     data = await resp.json(content_type=None)
-                    return "status" in data and "components" in data
-        except Exception:  # noqa: BLE001
+                    matched = "status" in data and "components" in data
+                    if not matched:
+                        _LOGGER.debug(
+                            "Statuspage.io detect: %s returned JSON without "
+                            "'status'/'components' keys (keys: %s)",
+                            api_url,
+                            list(data.keys()),
+                        )
+                    return matched
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Statuspage.io detect: exception fetching %s: %s: %s",
+                api_url,
+                type(err).__name__,
+                err,
+            )
             return False
 
     @classmethod

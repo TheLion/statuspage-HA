@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Cachet – teal #7ED321 / brand uses green/teal. Using #47A4DB (their docs blue) -->
+  <rect width="128" height="128" rx="24" fill="#47A4DB"/>
+  <!-- Shield – open-source, self-hosted, trusted -->
+  <path d="M 64 16 L 104 34 L 104 70 Q 104 100 64 114 Q 24 100 24 70 L 24 34 Z"
+        fill="none" stroke="white" stroke-width="7" stroke-linejoin="round"/>
+  <!-- Checkmark inside shield -->
+  <polyline points="44,64 58,78 84,50" fill="none" stroke="white" stroke-width="8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
