@@ -40,6 +40,9 @@
   },
   "entity": {
     "sensor": {
+      "provider_info": {
+        "name": "Provider"
+      },
       "overall_status": {
         "state": {
           "none": "Operationeel",
@@ -47,6 +50,15 @@
           "major": "Grote problemen",
           "critical": "Kritiek"
         }
+      },
+      "active_incidents": {
+        "name": "Actieve incidenten"
+      },
+      "active_incident_description": {
+        "name": "Actief incident – beschrijving"
+      },
+      "scheduled_maintenances": {
+        "name": "Geplande onderhoudswerkzaamheden"
       },
       "component_status": {
         "state": {

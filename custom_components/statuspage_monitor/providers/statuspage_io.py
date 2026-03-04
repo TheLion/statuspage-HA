@@ -52,6 +52,7 @@ class StatuspageIoProvider:
 
     ID: ClassVar[str] = "statuspage_io"
     NAME: ClassVar[str] = "Atlassian Statuspage (Statuspage.io)"
+    SHORT_NAME: ClassVar[str] = "Atlassian"
 
     @classmethod
     async def detect(
