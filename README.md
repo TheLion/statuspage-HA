@@ -25,8 +25,10 @@ address and the integration handles the rest.
 | Provider | Status | Notes |
 |----------|--------|-------|
 | **Atlassian Statuspage** (statuspage.io) | ✅ Supported | Any service hosted on the Atlassian Statuspage platform, including self-hosted instances |
-| Status.io | 🔜 Planned | Implementation guide available in `providers/status_io.py` |
-| UptimeRobot Status Pages | 🔜 Planned | Implementation guide available in `providers/uptimerobot.py` |
+| **Status.io** | ✅ Supported | Detected automatically from the Status.io API response |
+| **UptimeRobot Status Pages** | ✅ Supported | Detected via `window.pspApiPath` on the status page |
+| **Cachet** | ✅ Supported | Self-hosted Cachet instances (v2 and v3 API) |
+| **Instatus** | ✅ Supported | Pages hosted on the Instatus platform |
 
 > Hundreds of services use the Atlassian Statuspage platform, so most public
 > status pages you will encounter are already supported today.
@@ -226,9 +228,12 @@ statuspage-HA/
     ├── providers/
     │   ├── __init__.py      # Provider registry and auto-detection
     │   ├── base.py          # StatusPageData dataclasses + StatusPageProvider Protocol
-    │   ├── statuspage_io.py # ✅ Atlassian Statuspage (statuspage.io) – full implementation
-    │   ├── status_io.py     # 🔜 Status.io – stub with implementation guide
-    │   └── uptimerobot.py   # 🔜 UptimeRobot – stub with implementation guide
+    │   ├── statuspage_io.py # Atlassian Statuspage (statuspage.io)
+    │   ├── status_io.py     # Status.io
+    │   ├── uptimerobot.py   # UptimeRobot Status Pages
+    │   ├── cachet.py        # Cachet (self-hosted, v2 + v3)
+    │   ├── instatus.py      # Instatus
+    │   └── logos/           # Bundled SVG provider logos
     └── translations/
         ├── en.json          # English translations
         └── nl.json          # Dutch translations
