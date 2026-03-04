@@ -1,9 +1,5 @@
 """Provider registry for StatusPage Monitor.
 
-Only *fully implemented* providers are listed in PROVIDERS.  Stub providers
-(status_io, uptimerobot) are importable but not registered here – add them
-once their detect() and fetch() methods are implemented.
-
 Adding a new provider
 ---------------------
 1. Create ``providers/<name>.py`` implementing the StatusPageProvider Protocol.
@@ -17,16 +13,20 @@ import logging
 import aiohttp
 
 from .base import StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
+from .cachet import CachetProvider
+from .status_io import StatusIoProvider
 from .statuspage_io import StatuspageIoProvider
+from .uptimerobot import UptimeRobotProvider
 
 _LOGGER = logging.getLogger(__name__)
 
-# Ordered list of active providers.  Detection is tried in this order.
-PROVIDERS: list[type[StatuspageIoProvider]] = [
+# Ordered list of fully implemented providers.
+# Atlassian is tried first (most common); Cachet last (requires self-hosted ping).
+PROVIDERS: list[type] = [
     StatuspageIoProvider,
-    # Add new providers here, e.g.:
-    # StatusIoProvider,
-    # UptimeRobotProvider,
+    StatusIoProvider,
+    UptimeRobotProvider,
+    CachetProvider,
 ]
 
 PROVIDERS_BY_ID: dict[str, type] = {p.ID: p for p in PROVIDERS}
