@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _LOGOS_URL_PATH = "/statuspage_monitor/logos"
-_LOGOS_DIR = Path(__file__).parent / "logos"
+_LOGOS_DIR = Path(__file__).parent / "providers" / "logos"
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
