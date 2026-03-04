@@ -12,7 +12,7 @@ import logging
 
 import aiohttp
 
-from .base import StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
+from .base import Component, StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
 from .cachet import CachetProvider
 from .status_io import StatusIoProvider
 from .statuspage_io import StatuspageIoProvider

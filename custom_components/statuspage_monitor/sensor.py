@@ -51,8 +51,7 @@ from .const import (
     PROVIDER_STATUSPAGE_IO,
 )
 from .coordinator import StatusPageMonitorCoordinator
-from .providers import get_provider
-from .providers.base import Component, StatusPageData
+from .providers import Component, StatusPageData, get_provider
 
 _LOGGER = logging.getLogger(__name__)
 
