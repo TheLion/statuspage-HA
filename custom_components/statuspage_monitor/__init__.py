@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -41,7 +42,9 @@ _LOGOS_DIR = Path(__file__).parent / "providers" / "logos"
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register static logo assets so entity_picture URLs resolve inside HA."""
-    hass.http.register_static_path(_LOGOS_URL_PATH, str(_LOGOS_DIR), cache_headers=True)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(_LOGOS_URL_PATH, str(_LOGOS_DIR), cache_headers=True)]
+    )
     return True
 
 
