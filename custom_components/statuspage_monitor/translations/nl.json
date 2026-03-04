@@ -63,6 +63,12 @@
           "major_outage": "Grote storing",
           "under_maintenance": "In onderhoud"
         }
+      },
+      "provider_info": {
+        "name": "Provider"
+      },
+      "active_incident_description": {
+        "name": "Actief incident omschrijving"
       }
     }
   }

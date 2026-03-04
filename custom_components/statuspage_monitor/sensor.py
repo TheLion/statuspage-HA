@@ -2,26 +2,25 @@
 
 Creates the following sensors per configured status page:
 
+  • Provider info            – name of the provider (e.g. "Atlassian")
   • Overall status          – enum: none / minor / major / critical
   • Active incidents        – integer count with incident details as attributes
+  • Active incident body    – latest update text of the first active incident
+                              (only for providers that support it)
   • Scheduled maintenances  – integer count with maintenance details
   • Per-component status    – enum: operational / degraded_performance /
                               partial_outage / major_outage / under_maintenance
 
-Sensor icons change dynamically to provide an immediate visual colour cue:
-  ✅  mdi:check-circle      → operational / no issues
-  ⚠️  mdi:alert             → degraded / minor issue
-  🔶  mdi:alert-circle      → partial outage / major issue
-  🔴  mdi:close-circle      → major outage / critical issue
-  🔧  mdi:wrench-clock      → under maintenance
-
-The icon_color attribute is exposed via extra_state_attributes so that
-Mushroom template cards can read it with:
+Every sensor exposes ``icon`` and ``icon_color`` via extra_state_attributes so
+that Mushroom template cards can read them with:
+  icon:       "{{ state_attr(config.entity, 'icon') }}"
   icon_color: "{{ state_attr(config.entity, 'icon_color') }}"
 """
 from __future__ import annotations
 
+import base64
 import logging
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -41,29 +40,95 @@ from .const import (
     COMPONENT_ICONS,
     COMPONENT_OPERATIONAL,
     COMPONENT_STATUS_OPTIONS,
+    CONF_PAGE_NAME,
+    CONF_PROVIDER,
     CONF_URL,
     DOMAIN,
     INDICATOR_COLORS,
     INDICATOR_ICONS,
     INDICATOR_NONE,
     INDICATOR_OPTIONS,
+    PROVIDER_STATUSPAGE_IO,
 )
 from .coordinator import StatusPageMonitorCoordinator
+from .providers import get_provider
 from .providers.base import Component, StatusPageData
 
 _LOGGER = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Provider logos – loaded as base64 data URLs at import time so they render
+# on ALL HA dashboard card types without needing HTTP requests or static paths.
+# ---------------------------------------------------------------------------
+
+def _load_provider_logos() -> dict[str, str]:
+    """Return {provider_id: data_url} for every SVG in the logos directory."""
+    logos_dir = Path(__file__).parent / "providers" / "logos"
+    result: dict[str, str] = {}
+    try:
+        for svg_file in logos_dir.glob("*.svg"):
+            b64 = base64.b64encode(svg_file.read_bytes()).decode()
+            result[svg_file.stem] = f"data:image/svg+xml;base64,{b64}"
+    except OSError:
+        _LOGGER.warning("Could not load provider logos from %s", logos_dir)
+    return result
+
+
+_PROVIDER_LOGOS: dict[str, str] = _load_provider_logos()
+
+# MDI icon fallbacks (shown when entity_picture is unavailable).
+_PROVIDER_ICONS: dict[str, str] = {
+    "statuspage_io": "mdi:atlassian",
+    "status_io": "mdi:heart-pulse",
+    "uptimerobot": "mdi:robot",
+    "instatus": "mdi:lightning-bolt",
+    "cachet": "mdi:shield-check",
+}
+
+# Map incident impact values to icon colours.
+_IMPACT_COLORS: dict[str, str] = {
+    "critical": "red",
+    "major": "orange",
+    "minor": "yellow",
+    "none": "yellow",
+}
+_IMPACT_SEVERITY: dict[str, int] = {
+    "critical": 3,
+    "major": 2,
+    "minor": 1,
+    "none": 0,
+}
+
 
 def _page_slug(coordinator: StatusPageMonitorCoordinator, entry: ConfigEntry) -> str:
-    """Return a URL-safe slug derived from the status page name (or URL fallback)."""
+    """Return a URL-safe slug derived from the status page name.
+
+    Resolution order:
+    1. Live page name from coordinator data (most accurate).
+    2. Page name stored in config entry data (set during config flow – avoids
+       a race condition when coordinator.data is not yet available on first
+       entity creation).
+    3. URL fallback (last resort).
+    """
     data: StatusPageData | None = coordinator.data
-    name = (data.page.name if data else None) or entry.data[CONF_URL]
+    name = (
+        (data.page.name if data else None)
+        or entry.data.get(CONF_PAGE_NAME)
+        or entry.data[CONF_URL]
+    )
     return slugify(name)
 
 
 # ---------------------------------------------------------------------------
 # Entity descriptions for the static (non-component) sensors
 # ---------------------------------------------------------------------------
+
+PROVIDER_INFO_DESCRIPTION = SensorEntityDescription(
+    key="provider_info",
+    translation_key="provider_info",
+    has_entity_name=True,
+    icon="mdi:information",
+)
 
 OVERALL_STATUS_DESCRIPTION = SensorEntityDescription(
     key="overall_status",
@@ -89,6 +154,13 @@ MAINTENANCE_DESCRIPTION = SensorEntityDescription(
     icon="mdi:calendar-clock",
 )
 
+INCIDENT_BODY_DESCRIPTION = SensorEntityDescription(
+    key="active_incident_description",
+    translation_key="active_incident_description",
+    has_entity_name=True,
+    icon="mdi:text-box-outline",
+)
+
 
 # ---------------------------------------------------------------------------
 # Platform setup
@@ -102,11 +174,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up Status Page Monitor sensors from a config entry.
 
-    Static sensors (overall status, incidents, maintenances) are created
-    immediately.  Component sensors are added on the first coordinator
+    Static sensors (provider info, overall status, incidents, maintenances) are
+    created immediately.  Component sensors are added on the first coordinator
     update and whenever new components appear in subsequent updates.
+
+    The active_incident_description sensor is omitted for providers that do not
+    expose incident body text (``SUPPORTS_INCIDENT_BODY = False``).
     """
     coordinator: StatusPageMonitorCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    provider_id = entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+    provider_class = get_provider(provider_id)
+    supports_incident_body = getattr(provider_class, "SUPPORTS_INCIDENT_BODY", True)
 
     known_component_ids: set[str] = set()
     static_added = False
@@ -117,13 +196,15 @@ async def async_setup_entry(
         entities: list[SensorEntity] = []
 
         if not static_added and coordinator.data:
-            entities.extend(
-                [
-                    OverallStatusSensor(coordinator, entry),
-                    ActiveIncidentsSensor(coordinator, entry),
-                    ScheduledMaintenanceSensor(coordinator, entry),
-                ]
-            )
+            static: list[SensorEntity] = [
+                ProviderInfoSensor(coordinator, entry),
+                OverallStatusSensor(coordinator, entry),
+                ActiveIncidentsSensor(coordinator, entry),
+                ScheduledMaintenanceSensor(coordinator, entry),
+            ]
+            if supports_incident_body:
+                static.insert(3, ActiveIncidentBodySensor(coordinator, entry))
+            entities.extend(static)
             static_added = True
 
         for component in (coordinator.data.components if coordinator.data else []):
@@ -134,10 +215,10 @@ async def async_setup_entry(
         if entities:
             async_add_entities(entities)
 
-    # Add initial entities if data is already available
+    # Add initial entities if data is already available.
     _async_add_entities()
 
-    # Subscribe so that new components discovered in later updates are added
+    # Subscribe so that new components discovered in later updates are added.
     entry.async_on_unload(coordinator.async_add_listener(_async_add_entities))
 
 
@@ -181,6 +262,74 @@ class _StatusPageEntity(
 
 
 # ---------------------------------------------------------------------------
+# Provider info sensor
+# ---------------------------------------------------------------------------
+
+
+class ProviderInfoSensor(_StatusPageEntity):
+    """Sensor reporting the provider platform for this status page.
+
+    State is the short provider name (e.g. "Atlassian", "UptimeRobot").
+    The entity_picture is an embedded SVG data URL so it renders on every
+    HA dashboard card type without requiring HTTP requests or static paths.
+    """
+
+    entity_description = PROVIDER_INFO_DESCRIPTION
+
+    def __init__(
+        self,
+        coordinator: StatusPageMonitorCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_provider_info"
+        # Use suggested_object_id (plain instance attribute) so the correct
+        # entity ID is applied immediately on first creation, in all HA versions.
+        self.suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_provider_info"
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return the short provider name."""
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        provider_class = get_provider(provider_id)
+        return getattr(provider_class, "SHORT_NAME", provider_class.NAME)
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return an embedded SVG data URL for the provider logo.
+
+        Data URLs work in every HA card type (tile, entity, entities card) and
+        the entity detail popup without needing HTTP requests or static paths.
+        """
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        return _PROVIDER_LOGOS.get(provider_id)
+
+    @property
+    def icon(self) -> str:
+        """MDI fallback icon when entity_picture is unavailable."""
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        return _PROVIDER_ICONS.get(provider_id, "mdi:information")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        provider_class = get_provider(provider_id)
+        data: StatusPageData | None = self.coordinator.data
+        attrs: dict[str, Any] = {
+            "provider_id": provider_id,
+            "provider_name": provider_class.NAME,
+            "page_url": self._entry.data[CONF_URL],
+            "icon": _PROVIDER_ICONS.get(provider_id, "mdi:information"),
+            "icon_color": "blue",
+        }
+        if data and data.page.updated_at:
+            attrs["page_updated_at"] = data.page.updated_at
+        return attrs
+
+
+# ---------------------------------------------------------------------------
 # Overall status sensor
 # ---------------------------------------------------------------------------
 
@@ -200,7 +349,7 @@ class OverallStatusSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_overall_status"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_overall_status"
         )
 
@@ -227,6 +376,7 @@ class OverallStatusSensor(_StatusPageEntity):
             "page_name": data.page.name,
             "page_url": self._entry.data[CONF_URL],
             "page_updated_at": data.page.updated_at,
+            "icon": self.icon,
             "icon_color": INDICATOR_COLORS.get(self.native_value, "grey"),
         }
 
@@ -248,7 +398,7 @@ class ActiveIncidentsSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incidents"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_active_incidents"
         )
 
@@ -266,8 +416,18 @@ class ActiveIncidentsSensor(_StatusPageEntity):
         return data.incidents if data else []
 
     @property
+    def _icon_color(self) -> str:
+        incidents = self._active_incidents
+        if not incidents:
+            return "green"
+        worst = max(incidents, key=lambda i: _IMPACT_SEVERITY.get(i.impact, 0))
+        return _IMPACT_COLORS.get(worst.impact, "yellow")
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
+            "icon": self.icon,
+            "icon_color": self._icon_color,
             "incidents": [
                 {
                     "id": inc.id,
@@ -279,7 +439,65 @@ class ActiveIncidentsSensor(_StatusPageEntity):
                     "updated_at": inc.updated_at,
                 }
                 for inc in self._active_incidents
-            ]
+            ],
+        }
+
+
+# ---------------------------------------------------------------------------
+# Active incident body sensor
+# ---------------------------------------------------------------------------
+
+
+class ActiveIncidentBodySensor(_StatusPageEntity):
+    """Sensor reporting the latest update text of the first active incident.
+
+    State is the body text of the most recent incident update.  When there
+    are no active incidents the state is None (shown as 'unknown' in HA).
+
+    Only created for providers where ``SUPPORTS_INCIDENT_BODY = True`` (the default).
+    """
+
+    entity_description = INCIDENT_BODY_DESCRIPTION
+
+    def __init__(
+        self,
+        coordinator: StatusPageMonitorCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_active_incident_description"
+        self.suggested_object_id = (
+            f"statuspage_{_page_slug(coordinator, entry)}_active_incident_description"
+        )
+
+    @property
+    def _first_incident(self):
+        data: StatusPageData | None = self.coordinator.data
+        incidents = data.incidents if data else []
+        return incidents[0] if incidents else None
+
+    @property
+    def native_value(self) -> str | None:
+        inc = self._first_incident
+        return inc.body if inc else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:text-box-outline" if self._first_incident else "mdi:text-box-check-outline"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        inc = self._first_incident
+        color = _IMPACT_COLORS.get(inc.impact, "yellow") if inc else "green"
+        if not inc:
+            return {"icon": self.icon, "icon_color": color}
+        return {
+            "incident_id": inc.id,
+            "incident_name": inc.name,
+            "incident_status": inc.status,
+            "incident_impact": inc.impact,
+            "icon": self.icon,
+            "icon_color": color,
         }
 
 
@@ -300,7 +518,7 @@ class ScheduledMaintenanceSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_scheduled_maintenances"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_scheduled_maintenances"
         )
 
@@ -318,6 +536,8 @@ class ScheduledMaintenanceSensor(_StatusPageEntity):
         data: StatusPageData | None = self.coordinator.data
         maintenances = data.scheduled_maintenances if data else []
         return {
+            "icon": self.icon,
+            "icon_color": "blue" if self.native_value > 0 else "green",
             "maintenances": [
                 {
                     "id": m.id,
@@ -329,7 +549,7 @@ class ScheduledMaintenanceSensor(_StatusPageEntity):
                     "scheduled_until": m.scheduled_until,
                 }
                 for m in maintenances
-            ]
+            ],
         }
 
 
@@ -358,7 +578,7 @@ class ComponentSensor(_StatusPageEntity):
         component_slug = slugify(component.name)
         if component_slug.startswith(page_slug + "_"):
             component_slug = component_slug[len(page_slug) + 1:]
-        self._attr_suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
+        self.suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
         self._attr_has_entity_name = True
         self._attr_translation_key = "component_status"
         self._attr_device_class = SensorDeviceClass.ENUM
@@ -402,7 +622,11 @@ class ComponentSensor(_StatusPageEntity):
         comp = self._component_data
         color = COMPONENT_COLORS.get(self.native_value, "grey")
         if not comp:
-            return {"component_id": self._component_id, "icon_color": color}
+            return {
+                "component_id": self._component_id,
+                "icon": self.icon,
+                "icon_color": color,
+            }
         return {
             "component_id": self._component_id,
             "description": comp.description,
@@ -410,6 +634,7 @@ class ComponentSensor(_StatusPageEntity):
             "group_id": comp.group_id,
             "updated_at": comp.updated_at,
             "showcase": comp.showcase,
+            "icon": self.icon,
             "icon_color": color,
         }
 

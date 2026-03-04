@@ -81,3 +81,6 @@ COMPONENT_COLORS = {
     COMPONENT_MAJOR_OUTAGE: "red",
     COMPONENT_MAINTENANCE: "blue",
 }
+
+# Stored in config entry during setup so entity IDs are stable before first data fetch
+CONF_PAGE_NAME = "page_name"

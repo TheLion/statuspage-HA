@@ -63,6 +63,12 @@
           "major_outage": "Major Outage",
           "under_maintenance": "Under Maintenance"
         }
+      },
+      "provider_info": {
+        "name": "Provider"
+      },
+      "active_incident_description": {
+        "name": "Active Incident Description"
       }
     }
   }

@@ -1,9 +1,5 @@
 """Provider registry for Status Page Monitor.
 
-Only *fully implemented* providers are listed in PROVIDERS.  Stub providers
-(status_io, uptimerobot) are importable but not registered here – add them
-once their detect() and fetch() methods are implemented.
-
 Adding a new provider
 ---------------------
 1. Create ``providers/<name>.py`` implementing the StatusPageProvider Protocol.
@@ -17,16 +13,20 @@ import logging
 import aiohttp
 
 from .base import StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
+from .cachet import CachetProvider
+from .status_io import StatusIoProvider
 from .statuspage_io import StatuspageIoProvider
+from .uptimerobot import UptimeRobotProvider
 
 _LOGGER = logging.getLogger(__name__)
 
-# Ordered list of active providers.  Detection is tried in this order.
-PROVIDERS: list[type[StatuspageIoProvider]] = [
+# Ordered list of fully implemented providers.
+# Atlassian is tried first (most common); Cachet last (requires self-hosted ping).
+PROVIDERS: list[type] = [
     StatuspageIoProvider,
-    # Add new providers here, e.g.:
-    # StatusIoProvider,
-    # UptimeRobotProvider,
+    StatusIoProvider,
+    UptimeRobotProvider,
+    CachetProvider,
 ]
 
 PROVIDERS_BY_ID: dict[str, type] = {p.ID: p for p in PROVIDERS}
@@ -39,13 +39,26 @@ async def detect_provider(
 ) -> type | None:
     """Try each registered provider and return the first one that matches *url*.
 
-    Returns None if no provider recognises the URL.
+    Returns None if no provider recognises the URL.  All detection attempts are
+    logged at DEBUG level so the Home Assistant logs give a clear diagnosis
+    when a URL is rejected.
     """
     for provider in PROVIDERS:
         _LOGGER.debug("Trying provider %s for %s", provider.NAME, url)
-        if await provider.detect(session, url, timeout):
-            _LOGGER.debug("Detected provider %s for %s", provider.NAME, url)
+        matched = await provider.detect(session, url, timeout)
+        if matched:
+            _LOGGER.info("Provider detected: %s → %s", url, provider.NAME)
             return provider
+        _LOGGER.debug("Provider %s did not match %s", provider.NAME, url)
+
+    _LOGGER.warning(
+        "No supported status-page provider found for %s. "
+        "Tried: %s. "
+        "If this is a supported platform, check the URL and look for connection "
+        "errors above this message.",
+        url,
+        ", ".join(p.NAME for p in PROVIDERS),
+    )
     return None
 
 
