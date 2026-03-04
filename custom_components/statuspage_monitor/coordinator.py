@@ -20,7 +20,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
-from .providers.base import StatusPageData
+from .providers import StatusPageData
 
 _LOGGER = logging.getLogger(__name__)
 
