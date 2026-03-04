@@ -271,8 +271,15 @@ class ProviderInfoSensor(_StatusPageEntity):
         return getattr(provider_class, "SHORT_NAME", provider_class.NAME)
 
     @property
+    def entity_picture(self) -> str | None:
+        """Return the bundled provider logo served from HA's static-path API."""
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        provider_class = get_provider(provider_id)
+        return getattr(provider_class, "LOGO_PATH", None)
+
+    @property
     def icon(self) -> str:
-        """Return the provider-specific MDI icon."""
+        """Fallback MDI icon used when entity_picture is not available."""
         provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
         return _PROVIDER_ICONS.get(provider_id, "mdi:information")
 

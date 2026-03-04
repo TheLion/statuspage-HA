@@ -46,6 +46,8 @@ class UptimeRobotProvider:
 
     ID: ClassVar[str] = "uptimerobot"
     NAME: ClassVar[str] = "UptimeRobot"
+    SHORT_NAME: ClassVar[str] = "UptimeRobot"
+    LOGO_PATH: ClassVar[str] = "/statuspage_monitor/logos/uptimerobot.svg"
 
     @classmethod
     async def detect(

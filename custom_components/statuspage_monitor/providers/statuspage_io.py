@@ -53,6 +53,7 @@ class StatuspageIoProvider:
     ID: ClassVar[str] = "statuspage_io"
     NAME: ClassVar[str] = "Atlassian Statuspage (Statuspage.io)"
     SHORT_NAME: ClassVar[str] = "Atlassian"
+    LOGO_PATH: ClassVar[str] = "/statuspage_monitor/logos/statuspage_io.svg"
 
     @classmethod
     async def detect(

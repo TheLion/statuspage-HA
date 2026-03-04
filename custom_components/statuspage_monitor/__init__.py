@@ -20,6 +20,7 @@ The provider for each configured URL is auto-detected during setup.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -33,6 +34,15 @@ from .providers import get_provider
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+_LOGOS_URL_PATH = "/statuspage_monitor/logos"
+_LOGOS_DIR = Path(__file__).parent / "logos"
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register static logo assets so entity_picture URLs resolve inside HA."""
+    hass.http.register_static_path(_LOGOS_URL_PATH, str(_LOGOS_DIR), cache_headers=True)
+    return True
 
 
 async def _async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:

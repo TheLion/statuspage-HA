@@ -164,6 +164,7 @@ class CachetProvider:
     ID: ClassVar[str] = "cachet"
     NAME: ClassVar[str] = "Cachet"
     SHORT_NAME: ClassVar[str] = "Cachet"
+    LOGO_PATH: ClassVar[str] = "/statuspage_monitor/logos/cachet.svg"
 
     @classmethod
     async def detect(
