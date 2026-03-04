@@ -39,13 +39,26 @@ async def detect_provider(
 ) -> type | None:
     """Try each registered provider and return the first one that matches *url*.
 
-    Returns None if no provider recognises the URL.
+    Returns None if no provider recognises the URL.  All detection attempts are
+    logged at WARNING level so the Home Assistant logs give a clear diagnosis
+    when a URL is rejected.
     """
     for provider in PROVIDERS:
         _LOGGER.debug("Trying provider %s for %s", provider.NAME, url)
-        if await provider.detect(session, url, timeout):
-            _LOGGER.debug("Detected provider %s for %s", provider.NAME, url)
+        matched = await provider.detect(session, url, timeout)
+        if matched:
+            _LOGGER.info("Provider detected: %s → %s", url, provider.NAME)
             return provider
+        _LOGGER.debug("Provider %s did not match %s", provider.NAME, url)
+
+    _LOGGER.warning(
+        "No supported status-page provider found for %s. "
+        "Tried: %s. "
+        "If this is a supported platform, check the URL and look for connection "
+        "errors above this message.",
+        url,
+        ", ".join(p.NAME for p in PROVIDERS),
+    )
     return None
 
 

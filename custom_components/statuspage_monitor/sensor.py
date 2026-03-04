@@ -271,9 +271,10 @@ class ProviderInfoSensor(_StatusPageEntity):
         return getattr(provider_class, "SHORT_NAME", provider_class.NAME)
 
     @property
-    def entity_picture(self) -> str:
-        """Return the favicon URL of the status page as the entity picture."""
-        return f"{self._entry.data[CONF_URL]}/favicon.ico"
+    def icon(self) -> str:
+        """Return the provider-specific MDI icon."""
+        provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
+        return _PROVIDER_ICONS.get(provider_id, "mdi:information")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -284,7 +285,6 @@ class ProviderInfoSensor(_StatusPageEntity):
             "provider_id": provider_id,
             "provider_name": provider_class.NAME,
             "page_url": self._entry.data[CONF_URL],
-            "favicon_url": f"{self._entry.data[CONF_URL]}/favicon.ico",
             "icon": _PROVIDER_ICONS.get(provider_id, "mdi:information"),
         }
         if data and data.page.updated_at:
