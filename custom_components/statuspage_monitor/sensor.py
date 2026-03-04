@@ -18,7 +18,9 @@ that Mushroom template cards can read them with:
 """
 from __future__ import annotations
 
+import base64
 import logging
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -54,6 +56,26 @@ from .providers.base import Component, StatusPageData
 
 _LOGGER = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Provider logos – loaded as base64 data URLs at import time so they render
+# on ALL HA dashboard card types without needing HTTP requests or static paths.
+# ---------------------------------------------------------------------------
+
+def _load_provider_logos() -> dict[str, str]:
+    """Return {provider_id: data_url} for every SVG in the logos directory."""
+    logos_dir = Path(__file__).parent / "providers" / "logos"
+    result: dict[str, str] = {}
+    try:
+        for svg_file in logos_dir.glob("*.svg"):
+            b64 = base64.b64encode(svg_file.read_bytes()).decode()
+            result[svg_file.stem] = f"data:image/svg+xml;base64,{b64}"
+    except OSError:
+        _LOGGER.warning("Could not load provider logos from %s", logos_dir)
+    return result
+
+
+_PROVIDER_LOGOS: dict[str, str] = _load_provider_logos()
+
 # Map incident impact values to icon colours.
 _IMPACT_COLORS: dict[str, str] = {
     "critical": "red",
@@ -68,11 +90,13 @@ _IMPACT_SEVERITY: dict[str, int] = {
     "none": 0,
 }
 
-# MDI icons per provider (for use as icon attribute on ProviderInfoSensor).
+# MDI icon fallbacks per provider (shown when entity_picture is unavailable).
 _PROVIDER_ICONS: dict[str, str] = {
     "statuspage_io": "mdi:atlassian",
-    "instatus": "mdi:information",
-    "cachet": "mdi:information",
+    "status_io": "mdi:heart-pulse",
+    "uptimerobot": "mdi:robot",
+    "instatus": "mdi:lightning-bolt",
+    "cachet": "mdi:shield-check",
 }
 
 
@@ -259,7 +283,7 @@ class ProviderInfoSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_provider_info"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_provider_info"
         )
 
@@ -272,10 +296,13 @@ class ProviderInfoSensor(_StatusPageEntity):
 
     @property
     def entity_picture(self) -> str | None:
-        """Return the bundled provider logo served from HA's static-path API."""
+        """Return an embedded SVG data URL for the provider logo.
+
+        Data URLs work in every HA card type (tile, entity, entities card) and
+        the entity detail popup without needing HTTP requests or static paths.
+        """
         provider_id = self._entry.data.get(CONF_PROVIDER, PROVIDER_STATUSPAGE_IO)
-        provider_class = get_provider(provider_id)
-        return getattr(provider_class, "LOGO_PATH", None)
+        return _PROVIDER_LOGOS.get(provider_id)
 
     @property
     def icon(self) -> str:
@@ -319,7 +346,7 @@ class OverallStatusSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_overall_status"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_overall_status"
         )
 
@@ -368,7 +395,7 @@ class ActiveIncidentsSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incidents"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_active_incidents"
         )
 
@@ -438,7 +465,7 @@ class ActiveIncidentBodySensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incident_description"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_active_incident_description"
         )
 
@@ -493,7 +520,7 @@ class ScheduledMaintenanceSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_scheduled_maintenances"
-        self._attr_suggested_object_id = (
+        self.suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_scheduled_maintenances"
         )
 
@@ -553,7 +580,7 @@ class ComponentSensor(_StatusPageEntity):
         component_slug = slugify(component.name)
         if component_slug.startswith(page_slug + "_"):
             component_slug = component_slug[len(page_slug) + 1:]
-        self._attr_suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
+        self.suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
         self._attr_has_entity_name = True
         self._attr_translation_key = "component_status"
         self._attr_device_class = SensorDeviceClass.ENUM
