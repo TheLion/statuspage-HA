@@ -40,6 +40,9 @@
   },
   "entity": {
     "sensor": {
+      "provider_info": {
+        "name": "Provider"
+      },
       "overall_status": {
         "name": "Overall Status",
         "state": {

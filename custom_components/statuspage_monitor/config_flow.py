@@ -15,6 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     API_TIMEOUT,
+    CONF_PAGE_NAME,
     CONF_PROVIDER,
     CONF_SCAN_INTERVAL,
     CONF_URL,
@@ -87,6 +88,7 @@ class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
                         data={
                             CONF_URL: url,
                             CONF_PROVIDER: provider.ID,
+                            CONF_PAGE_NAME: page_name,
                             CONF_SCAN_INTERVAL: user_input.get(
                                 CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                             ),
