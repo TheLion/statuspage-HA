@@ -282,7 +282,7 @@ class ProviderInfoSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_provider_info"
-        self.suggested_object_id = (
+        self._attr_suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_provider_info"
         )
 
@@ -345,7 +345,7 @@ class OverallStatusSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_overall_status"
-        self.suggested_object_id = (
+        self._attr_suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_overall_status"
         )
 
@@ -394,7 +394,7 @@ class ActiveIncidentsSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incidents"
-        self.suggested_object_id = (
+        self._attr_suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_active_incidents"
         )
 
@@ -464,7 +464,7 @@ class ActiveIncidentBodySensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_active_incident_description"
-        self.suggested_object_id = (
+        self._attr_suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_active_incident_description"
         )
 
@@ -519,7 +519,7 @@ class ScheduledMaintenanceSensor(_StatusPageEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_scheduled_maintenances"
-        self.suggested_object_id = (
+        self._attr_suggested_object_id = (
             f"statuspage_{_page_slug(coordinator, entry)}_scheduled_maintenances"
         )
 
@@ -579,7 +579,7 @@ class ComponentSensor(_StatusPageEntity):
         component_slug = slugify(component.name)
         if component_slug.startswith(page_slug + "_"):
             component_slug = component_slug[len(page_slug) + 1:]
-        self.suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
+        self._attr_suggested_object_id = f"statuspage_{page_slug}_{component_slug}"
         self._attr_has_entity_name = True
         self._attr_translation_key = "component_status"
         self._attr_device_class = SensorDeviceClass.ENUM
