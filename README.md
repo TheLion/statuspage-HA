@@ -1,11 +1,18 @@
 # StatusPage Monitor
 
+[![Release](https://img.shields.io/github/v/release/TheLion/statuspage-HA?color=blue)](https://github.com/TheLion/statuspage-HA/releases)
+[![Downloads](https://img.shields.io/github/downloads/TheLion/statuspage-HA/total)](https://github.com/TheLion/statuspage-HA/releases)
+[![Last commit](https://img.shields.io/github/last-commit/TheLion/statuspage-HA/statuspage-monitor-main)](https://github.com/TheLion/statuspage-HA/commits/statuspage-monitor-main)
+[![Code size](https://img.shields.io/github/languages/code-size/TheLion/statuspage-HA)](https://github.com/TheLion/statuspage-HA)
+[![License](https://img.shields.io/github/license/TheLion/statuspage-HA)](LICENSE)
+
 Home Assistant custom integration that monitors status pages and exposes health
 data as sensors — overall status, active incidents, scheduled maintenances, and
 one sensor per service component.
 
 The provider is **auto-detected from the URL**. Just enter the status page
 address and the integration handles the rest.
+
 
 ---
 
