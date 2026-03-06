@@ -1,7 +1,7 @@
 # StatusPage Monitor
 
 [![Release](https://img.shields.io/github/v/release/TheLion/statuspage-HA?color=blue)](https://github.com/TheLion/statuspage-HA/releases)
-[![Downloads](https://img.shields.io/github/downloads/TheLion/statuspage-HA/total)](https://github.com/TheLion/statuspage-HA/releases)
+[![Installs](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.statuspage_monitor.total)](https://analytics.home-assistant.io)
 [![Last commit](https://img.shields.io/github/last-commit/TheLion/statuspage-HA/statuspage-monitor-main)](https://github.com/TheLion/statuspage-HA/commits/statuspage-monitor-main)
 [![Code size](https://img.shields.io/github/languages/code-size/TheLion/statuspage-HA)](https://github.com/TheLion/statuspage-HA)
 [![License](https://img.shields.io/github/license/TheLion/statuspage-HA)](LICENSE)
