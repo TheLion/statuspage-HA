@@ -136,11 +136,9 @@ sort:
   method: friendly_name
 ```
 
-Change `sensor.statuspage_cloudflare_*` to match your own page slug.
-
-Example:
-
 ![Dashboard cards example](docs/dashboard-cards.png)
+
+Change `sensor.statuspage_cloudflare_*` to match your own page slug.
 
 ### Single component with colour
 
