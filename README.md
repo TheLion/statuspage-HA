@@ -138,6 +138,9 @@ sort:
 
 Change `sensor.statuspage_cloudflare_*` to match your own page slug.
 
+Example:
+![Dashboard cards example](docs/dashboard-cards.png)
+
 ### Single component with colour
 
 ```yaml
