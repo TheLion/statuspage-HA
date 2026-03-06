@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Statuspagina toevoegen",
+        "description": "Voer de basis-URL in van de statuspagina die u wilt monitoren (bijv. https://status.claude.com). Het platform wordt automatisch herkend. U kunt meerdere pagina's toevoegen door deze stap te herhalen.",
+        "data": {
+          "url": "Statuspagina-URL",
+          "scan_interval": "Peilinginterval (seconden)"
+        },
+        "data_description": {
+          "url": "Basis-URL van de statuspagina (zonder afsluitende slash).",
+          "scan_interval": "Hoe vaak updates worden opgehaald. Minimum 30 seconden, standaard 60 seconden."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken met de statuspagina. Controleer uw netwerkverbinding en de URL.",
+      "invalid_url": "Ongeldige URL. Zorg ervoor dat de URL begint met https:// of http://.",
+      "not_a_statuspage": "Geen ondersteunde statuspagina-API gevonden op deze URL. Controleer of de URL verwijst naar een compatibele statuspagina-provider.",
+      "timeout": "Verbinding verlopen. De server is mogelijk tijdelijk niet beschikbaar.",
+      "unknown": "Er is een onverwachte fout opgetreden. Zie de Home Assistant-logboeken voor details."
+    },
+    "abort": {
+      "already_configured": "Deze statuspagina is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "StatusPage Monitor-opties",
+        "data": {
+          "scan_interval": "Peilinginterval (seconden)"
+        },
+        "data_description": {
+          "scan_interval": "Hoe vaak updates worden opgehaald. Minimum 30 seconden, standaard 60 seconden."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "provider_info": {
+        "name": "Provider"
+      },
+      "overall_status": {
+        "state": {
+          "none": "Operationeel",
+          "minor": "Kleine problemen",
+          "major": "Grote problemen",
+          "critical": "Kritiek"
+        }
+      },
+      "active_incidents": {
+        "name": "Actieve incidenten"
+      },
+      "active_incident_description": {
+        "name": "Actief incident – beschrijving"
+      },
+      "scheduled_maintenances": {
+        "name": "Geplande onderhoudswerkzaamheden"
+      },
+      "component_status": {
+        "state": {
+          "operational": "Operationeel",
+          "degraded_performance": "Verminderde prestaties",
+          "partial_outage": "Gedeeltelijke storing",
+          "major_outage": "Grote storing",
+          "under_maintenance": "In onderhoud"
+        }
+      }
+    }
+  }
+}

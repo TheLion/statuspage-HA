@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Instatus – purple #6B6FF6 -->
+  <rect width="128" height="128" rx="24" fill="#6B6FF6"/>
+  <!-- Lightning bolt – "instant status" -->
+  <polygon points="72,14 40,66 62,66 56,114 88,62 66,62"
+           fill="white"/>
+</svg>

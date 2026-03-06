@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Status.io – dark navy #1B2A4A -->
+  <rect width="128" height="128" rx="24" fill="#1B2A4A"/>
+  <!-- Pulse / heartbeat line – "status monitoring" motif -->
+  <polyline points="10,64 30,64 42,34 54,94 66,50 78,78 90,64 118,64"
+            fill="none" stroke="white" stroke-width="7"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

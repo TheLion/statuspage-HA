@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Background: deep blue rounded square (Atlassian-style) -->
+  <rect width="256" height="256" rx="44" fill="#0052CC"/>
+
+  <!-- Subtle inner gradient overlay -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1868DB"/>
+      <stop offset="100%" stop-color="#0747A6"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect width="256" height="256" rx="44"/>
+    </clipPath>
+  </defs>
+  <rect width="256" height="256" rx="44" fill="url(#bg)" clip-path="url(#clip)"/>
+
+  <!-- "Page" card in the center -->
+  <rect x="28" y="38" width="200" height="180" rx="14" fill="white" opacity="0.10"/>
+
+  <!-- Page title bar -->
+  <rect x="44" y="54" width="80" height="10" rx="5" fill="white" opacity="0.45"/>
+
+  <!-- Divider -->
+  <rect x="28" y="76" width="200" height="2" rx="1" fill="white" opacity="0.15"/>
+
+  <!-- Status rows: dot + bar -->
+
+  <!-- Row 1 – Operational: green -->
+  <circle cx="54" cy="108" r="11" fill="#36B37E"/>
+  <rect x="76" y="99" width="136" height="18" rx="9" fill="white" opacity="0.88"/>
+
+  <!-- Row 2 – Degraded Performance: yellow -->
+  <circle cx="54" cy="142" r="11" fill="#FFAB00"/>
+  <rect x="76" y="133" width="104" height="18" rx="9" fill="white" opacity="0.60"/>
+
+  <!-- Row 3 – Partial Outage: orange -->
+  <circle cx="54" cy="176" r="11" fill="#FF5630"/>
+  <rect x="76" y="167" width="120" height="18" rx="9" fill="white" opacity="0.60"/>
+
+  <!-- Row 4 – Major Outage: red (darker, shorter bar) -->
+  <circle cx="54" cy="210" r="11" fill="#BF2600"/>
+  <rect x="76" y="201" width="88" height="18" rx="9" fill="white" opacity="0.55"/>
+
+  <!-- Small maintenance indicator dot (blue) top-right corner of card -->
+  <circle cx="209" cy="108" r="7" fill="#4C9AFF"/>
+</svg>
