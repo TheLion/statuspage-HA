@@ -94,6 +94,25 @@ not support dynamic icon colours from attributes.
 
 ---
 
+## When the status page changes
+
+Status pages are not static — components get added, removed, or renamed over
+time. Here is how the integration handles each scenario:
+
+| Scenario | Behaviour |
+|----------|-----------|
+| **Component added** | A new sensor is created automatically on the next poll. No restart required. |
+| **Component removed** | The sensor becomes `unavailable`. It is not deleted automatically — remove it manually via **Settings → Devices & Services**. |
+| **Component renamed** | The sensor name updates automatically (it reads the name live from the API). The entity ID stays the same — it was assigned at creation time and is not changed by renames. |
+| **Page name changed** | Sensor attributes (e.g. `page_name`) update automatically. Existing entity IDs are not affected. |
+
+**Why are removed components not deleted automatically?**
+Automatically removing entities would silently break any automations,
+dashboards, or scripts that reference them. Keeping the sensor as `unavailable`
+makes it visible that something changed, so you can decide what to do.
+
+---
+
 ## Dashboard cards
 
 The `icon` and `icon_color` attributes are designed for use with the
