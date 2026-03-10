@@ -21,6 +21,7 @@ PROVIDER_STATUSPAGE_IO = "statuspage_io"
 PROVIDER_STATUS_IO = "status_io"
 PROVIDER_UPTIMEROBOT = "uptimerobot"
 PROVIDER_INSTATUS = "instatus"
+PROVIDER_SORRY = "sorry"
 PROVIDER_CACHET = "cachet"
 
 # Overall status indicator values (normalised – shared across all providers)
