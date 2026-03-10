@@ -1,0 +1,44 @@
+name: New provider request
+description: Request support for a new status page provider
+labels: ["provider-request"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Provider name
+      placeholder: "e.g. Freshstatus"
+    validations:
+      required: true
+
+  - type: input
+    id: example_url
+    attributes:
+      label: Example status page URL
+      description: A public URL of a status page that uses this provider.
+      placeholder: "https://status.example.com"
+    validations:
+      required: true
+
+  - type: input
+    id: provider_url
+    attributes:
+      label: Provider website
+      placeholder: "https://freshstatus.io"
+
+  - type: textarea
+    id: api_notes
+    attributes:
+      label: API notes (optional)
+      description: >
+        Anything you know about the API — public docs URL, authentication
+        requirements, known quirks.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: The status page API is publicly accessible (no login required)
+          required: true
+        - label: I have searched existing issues for a duplicate request
+          required: true
