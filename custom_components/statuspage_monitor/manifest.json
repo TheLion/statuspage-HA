@@ -1,7 +1,7 @@
 {
   "domain": "statuspage_monitor",
   "name": "StatusPage Monitor",
-  "version": "2026.3.0",
+  "version": "2026.3.1",
   "codeowners": ["@TheLion"],
   "config_flow": true,
   "documentation": "https://github.com/TheLion/statuspage-HA",
