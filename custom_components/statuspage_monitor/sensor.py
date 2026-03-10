@@ -95,6 +95,7 @@ _PROVIDER_ICONS: dict[str, str] = {
     "status_io": "mdi:heart-pulse",
     "uptimerobot": "mdi:robot",
     "instatus": "mdi:lightning-bolt",
+    "sorry": "mdi:emoticon-sad-outline",
     "cachet": "mdi:shield-check",
 }
 
