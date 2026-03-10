@@ -1,4 +1,4 @@
-"""Provider stub for Instatus (https://instatus.com).
+"""Provider implementation for Instatus (https://instatus.com).
 
 Instatus is a hosted status-page platform used by many SaaS services.
 Pages are hosted on custom domains or on ``*.instatus.com`` subdomains.
@@ -20,131 +20,64 @@ API endpoints (no authentication required)
 -------------------------------------------
 - Summary:    GET {url}/summary.json
 - Components: GET {url}/v2/components.json
-
-summary.json structure
------------------------
-::
-
-    {
-      "page": {
-        "id": "abc123",
-        "name": "My Service",
-        "url": "https://status.myservice.com",
-        "status": "UP"           # UP | HASISSUES | UNDERMAINTENANCE
-      },
-      "activeIncidents": [
-        {
-          "id": "inc_xyz",
-          "name": "API degradation",
-          "started": "2024-01-15T10:00:00.000Z",
-          "status": "INVESTIGATING",   # INVESTIGATING | IDENTIFIED | MONITORING | RESOLVED
-          "impact": "MAJOROUTAGE",     # OPERATIONAL | MINOROUTAGE | MAJOROUTAGE | PARTIALOUTAGE
-          "url": "https://status.myservice.com/incidents/inc_xyz"
-          # NOTE: no body/update-text available in the summary endpoint
-        }
-      ],
-      "activeMaintenances": [
-        {
-          "id": "mnt_abc",
-          "name": "Database migration",
-          "start": "2024-01-20T02:00:00.000Z",
-          "duration": 120,             # minutes; no explicit end time in API
-          "status": "NOTSTARTEDYET",   # NOTSTARTEDYET | INPROGRESS | COMPLETED
-          "url": "https://status.myservice.com/maintenances/mnt_abc"
-        }
-      ]
-    }
-
-v2/components.json structure
-------------------------------
-::
-
-    {
-      "page": { "id": "...", "name": "...", "url": "..." },
-      "components": [
-        {
-          "id": "comp_abc",
-          "name": "API",
-          "description": "REST API endpoints",
-          "status": "OPERATIONAL",     # see mapping below
-          "group": null,               # null or { "id": "...", "name": "..." }
-          "showUptime": true
-        }
-      ]
-    }
-
-Status mapping
---------------
-Overall page status (page.status → indicator):
-
-    ============= ================
-    Instatus      Normalised
-    ============= ================
-    UP            none
-    HASISSUES     major
-    UNDERMAINTENANCE none  (maintenances tracked separately)
-    ============= ================
-
-Component status (component.status → Component.status):
-
-    ===================== =========================
-    Instatus              Normalised
-    ===================== =========================
-    OPERATIONAL           operational
-    DEGRADEDPERFORMANCE   degraded_performance
-    PARTIALOUTAGE         partial_outage
-    MAJOROUTAGE           major_outage
-    UNDERMAINTENANCE      under_maintenance
-    ===================== =========================
-
-Field differences vs Atlassian Statuspage
-------------------------------------------
-- Incident start time: ``started`` (not ``started_at``)
-- Incident link:       ``url`` (not ``shortlink``)
-- Maintenance start:   ``start`` (not ``scheduled_for``)
-- Maintenance end:     not available — derive from ``start + duration``
-- Incident body:       NOT available in the public summary API
-                       → skip ``active_incident_description`` sensor for this provider
-- Page updated_at:     not available in summary
-
-TODO: implement this provider
-------------------------------
-1. Implement ``detect``:
-   - GET {url}/summary.json, expect 200
-   - Verify ``data.get("page", {}).get("status") in {"UP", "HASISSUES", "UNDERMAINTENANCE"}``
-   - Verify ``"components"`` is NOT a root-level key (distinguishes from Atlassian)
-
-2. Implement ``fetch``:
-   - Use ``asyncio.gather`` to call both endpoints in parallel:
-       a. GET {url}/summary.json
-       b. GET {url}/v2/components.json
-   - Map ``page.status`` to OverallStatus.indicator (see table above)
-   - Map ``activeIncidents`` → list[Incident] (use ``started``, ``url`` fields)
-   - Map ``activeMaintenances`` → list[Maintenance] (derive end from start+duration)
-   - Map ``components`` from components endpoint → list[Component]
-   - ``activeIncidents`` / ``activeMaintenances`` may be absent when empty — use
-     ``.get("activeIncidents") or []``
-
-3. Skip ``active_incident_description`` sensor:
-   - Instatus does not expose incident update bodies in the public API.
-   - Set a class-level flag ``SUPPORTS_INCIDENT_BODY: ClassVar[bool] = False``
-     so sensor.py can skip creating the sensor for this provider.
-
-4. Register provider:
-   - Add ``InstatusProvider`` to ``PROVIDERS`` in ``providers/__init__.py``
-   - Add ``PROVIDER_INSTATUS`` import in ``providers/__init__.py``
 """
 from __future__ import annotations
 
+import asyncio
+import logging
+from datetime import datetime, timedelta
 from typing import ClassVar
 
 import aiohttp
 
-from .base import StatusPageData
+from .base import (
+    Component,
+    Incident,
+    Maintenance,
+    OverallStatus,
+    PageInfo,
+    StatusPageData,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+_SUMMARY_PATH = "/summary.json"
+_COMPONENTS_PATH = "/v2/components.json"
+_HEADERS = {"Accept": "application/json"}
+
+# page.status → OverallStatus.indicator
+_STATUS_MAP: dict[str, str] = {
+    "UP": "none",
+    "HASISSUES": "major",
+    "UNDERMAINTENANCE": "none",  # maintenances tracked separately
+}
+
+# component.status → Component.status
+_COMPONENT_STATUS_MAP: dict[str, str] = {
+    "OPERATIONAL": "operational",
+    "DEGRADEDPERFORMANCE": "degraded_performance",
+    "PARTIALOUTAGE": "partial_outage",
+    "MAJOROUTAGE": "major_outage",
+    "UNDERMAINTENANCE": "under_maintenance",
+}
+
+# incident.impact → Incident.impact (our canonical values)
+_INCIDENT_IMPACT_MAP: dict[str, str] = {
+    "MINOROUTAGE": "minor",
+    "PARTIALOUTAGE": "minor",
+    "MAJOROUTAGE": "major",
+    "UNDERMAINTENANCE": "none",
+}
+
+# activeIncidents already contains only active ones, but filter defensively
+_RESOLVED_STATUSES = {"RESOLVED"}
+
+# activeMaintenances already contains only active ones, but filter defensively
+_COMPLETED_STATUSES = {"COMPLETED"}
 
 
 class InstatusProvider:
-    """Provider for the Instatus platform (not yet implemented)."""
+    """Provider for the Instatus platform."""
 
     ID: ClassVar[str] = "instatus"
     NAME: ClassVar[str] = "Instatus"
@@ -159,7 +92,45 @@ class InstatusProvider:
         url: str,
         timeout: int,
     ) -> bool:
-        raise NotImplementedError("Instatus provider is not yet implemented")
+        """Return True if url is an Instatus status page.
+
+        Atlassian Statuspage must be tried first — both use /summary.json.
+        Instatus is distinguished by the absence of a root-level "components" key.
+        """
+        api_url = f"{url}{_SUMMARY_PATH}"
+        try:
+            async with asyncio.timeout(timeout):
+                async with session.get(api_url, headers=_HEADERS) as resp:
+                    if resp.status != 200:
+                        _LOGGER.debug(
+                            "Instatus detect: %s returned HTTP %s", api_url, resp.status
+                        )
+                        return False
+                    data = await resp.json(content_type=None)
+                    page_status = data.get("page", {}).get("status")
+                    if page_status not in {"UP", "HASISSUES", "UNDERMAINTENANCE"}:
+                        _LOGGER.debug(
+                            "Instatus detect: unexpected page.status %r at %s",
+                            page_status,
+                            api_url,
+                        )
+                        return False
+                    if "components" in data:
+                        _LOGGER.debug(
+                            "Instatus detect: root-level 'components' key found at %s"
+                            " — likely Atlassian Statuspage",
+                            api_url,
+                        )
+                        return False
+                    return True
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Instatus detect: exception fetching %s: %s: %s",
+                api_url,
+                type(err).__name__,
+                err,
+            )
+            return False
 
     @classmethod
     async def fetch(
@@ -168,4 +139,99 @@ class InstatusProvider:
         url: str,
         timeout: int,
     ) -> StatusPageData:
-        raise NotImplementedError("Instatus provider is not yet implemented")
+        """Fetch summary and components in parallel and return StatusPageData."""
+        async with asyncio.timeout(timeout):
+            summary, components_raw = await asyncio.gather(
+                cls._get_json(session, f"{url}{_SUMMARY_PATH}"),
+                cls._get_json(session, f"{url}{_COMPONENTS_PATH}"),
+            )
+        return cls._parse(summary, components_raw, url)
+
+    @classmethod
+    async def _get_json(cls, session: aiohttp.ClientSession, url: str) -> dict:
+        async with session.get(url, headers=_HEADERS) as resp:
+            resp.raise_for_status()
+            return await resp.json(content_type=None)
+
+    @classmethod
+    def _parse(cls, summary: dict, components_raw: dict, url: str) -> StatusPageData:
+        """Map raw Instatus JSON to the normalised StatusPageData model."""
+        page_raw = summary.get("page", {})
+        page_status = page_raw.get("status", "UP")
+
+        components_list = components_raw.get("components", [])
+
+        # Determine which component IDs are group headers:
+        # a component is a group header if its ID is referenced as group.id by a child.
+        group_ids: set[str] = {
+            comp["group"]["id"]
+            for comp in components_list
+            if comp.get("group") and comp["group"].get("id")
+        }
+
+        return StatusPageData(
+            page=PageInfo(
+                name=page_raw.get("name") or url,
+                url=url,
+            ),
+            status=OverallStatus(
+                indicator=_STATUS_MAP.get(page_status, "none"),
+            ),
+            incidents=[
+                Incident(
+                    id=inc["id"],
+                    name=inc.get("name", ""),
+                    status=inc.get("status", ""),
+                    impact=_INCIDENT_IMPACT_MAP.get(inc.get("impact", ""), "minor"),
+                    shortlink=inc.get("url"),
+                    started_at=inc.get("started"),
+                    updated_at=inc.get("updatedAt"),
+                )
+                for inc in (summary.get("activeIncidents") or [])
+                if inc.get("status") not in _RESOLVED_STATUSES
+            ],
+            scheduled_maintenances=[
+                Maintenance(
+                    id=mnt["id"],
+                    name=mnt.get("name", ""),
+                    status=mnt.get("status", ""),
+                    impact="none",
+                    shortlink=mnt.get("url"),
+                    scheduled_for=mnt.get("start"),
+                    scheduled_until=cls._maintenance_end(mnt),
+                )
+                for mnt in (summary.get("activeMaintenances") or [])
+                if mnt.get("status") not in _COMPLETED_STATUSES
+            ],
+            components=[
+                Component(
+                    id=comp["id"],
+                    name=comp.get("name", comp["id"]),
+                    status=_COMPONENT_STATUS_MAP.get(
+                        comp.get("status", ""), "operational"
+                    ),
+                    description=comp.get("description") or None,
+                    group=comp["id"] in group_ids,
+                    group_id=(
+                        comp["group"]["id"] if comp.get("group") else None
+                    ),
+                )
+                for comp in components_list
+                if comp.get("id")
+            ],
+        )
+
+    @staticmethod
+    def _maintenance_end(mnt: dict) -> str | None:
+        """Derive scheduled_until from start + duration (minutes, as string)."""
+        start = mnt.get("start")
+        if not start:
+            return None
+        try:
+            duration_minutes = int(mnt.get("duration") or 0)
+            if not duration_minutes:
+                return None
+            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            return (start_dt + timedelta(minutes=duration_minutes)).isoformat()
+        except Exception:  # noqa: BLE001
+            return None
