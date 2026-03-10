@@ -14,6 +14,8 @@ Supported platforms
   • Statuspage.io (statuspage.io)
   • Status.io
   • UptimeRobot Status Pages
+  • Instatus (instatus.com)
+  • Sorry™ (sorryapp.com)
   • Cachet (self-hosted)
 
 The provider for each configured URL is auto-detected during setup.
@@ -119,6 +121,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Run migration again after platform setup so that entity IDs created during
+    # a first-time setup (when no entities existed yet for the pre-setup pass)
+    # are immediately corrected to the canonical statuspage_ prefix.
+    await _async_migrate_entity_ids(hass, entry)
 
     # Re-create the coordinator when the poll interval changes via options.
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

@@ -14,6 +14,8 @@ import aiohttp
 
 from .base import Component, StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
 from .cachet import CachetProvider
+from .instatus import InstatusProvider
+from .sorry import SorryProvider
 from .status_io import StatusIoProvider
 from .statuspage_io import StatuspageIoProvider
 from .uptimerobot import UptimeRobotProvider
@@ -21,11 +23,14 @@ from .uptimerobot import UptimeRobotProvider
 _LOGGER = logging.getLogger(__name__)
 
 # Ordered list of fully implemented providers.
-# Atlassian is tried first (most common); Cachet last (requires self-hosted ping).
+# Atlassian is tried first (most common); Instatus second (shares /summary.json path,
+# must be after Atlassian); Cachet last (requires self-hosted ping).
 PROVIDERS: list[type] = [
     StatuspageIoProvider,
     StatusIoProvider,
     UptimeRobotProvider,
+    InstatusProvider,
+    SorryProvider,
     CachetProvider,
 ]
 
