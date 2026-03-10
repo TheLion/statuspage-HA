@@ -23,21 +23,21 @@ address and the integration handles the rest.
 | **Atlassian Statuspage** | `/api/v2/summary.json` | The most widely used platform. Covers GitHub, Cloudflare, Atlassian, Anthropic, OpenAI, Twilio, Datadog, and hundreds more |
 | **Status.io** | `statuspageId` in page HTML | Two-step: extracts page ID from HTML, then calls the Status.io API |
 | **UptimeRobot** | `window.pspApiPath` in page HTML | Monitors + event feed fetched in parallel; overall status derived from worst monitor |
+| **Instatus** | `/summary.json` | Hosted platform used by hundreds of services on custom domains or `*.instatus.com` |
+| **Sorry™** | `/api/v1/` | Hosted platform used by services like Moneybird, Broadcom, and Pingdom |
 | **Cachet** | `/api/v1/ping` or `/api/ping` | Self-hosted open-source. Supports both v2 (`/api/v1`) and v3 (`/api`) |
-
-> **Instatus** is not yet supported (in progress).
 
 ### Provider feature comparison
 
-| Feature | Atlassian | Status.io | UptimeRobot | Cachet |
-|---------|:---------:|:---------:|:-----------:|:------:|
-| Overall status | ✅ | ✅ | ✅ (from worst monitor) | ✅ (from worst component) |
-| Component sensors | ✅ | ✅ | ✅ (one per monitor) | ✅ |
-| Active incidents | ✅ | ✅ | ✅ (from event feed) | ✅ |
-| Incident body text | ✅ | ✅ | ✅ | ✅ |
-| Scheduled maintenances | ✅ | ✅ | ✅ (from event feed) | ✅ (v2 only) |
-| Component groups | ✅ | ❌ | ✅ (monitor groups) | ✅ |
-| Self-hosted | ❌ | ❌ | ❌ | ✅ |
+| Feature | Atlassian | Status.io | UptimeRobot | Instatus | Sorry™ | Cachet |
+|---------|:---------:|:---------:|:-----------:|:--------:|:------:|:------:|
+| Overall status | ✅ | ✅ | ✅ (from worst monitor) | ✅ | ✅ | ✅ (from worst component) |
+| Component sensors | ✅ | ✅ | ✅ (one per monitor) | ✅ | ✅ | ✅ |
+| Active incidents | ✅ | ✅ | ✅ (from event feed) | ✅ | ✅ | ✅ |
+| Incident body text | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Scheduled maintenances | ✅ | ✅ | ✅ (from event feed) | ✅ | ✅ | ✅ (v2 only) |
+| Component groups | ✅ | ❌ | ✅ (monitor groups) | ✅ | ✅ | ✅ |
+| Self-hosted | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -225,9 +225,19 @@ throttling by some providers. The integration enforces a minimum of 30 seconds.
 | openSUSE (v2) | https://status.opensuse.org | Cachet |
 | Cachet demo (v2) | https://demo.cachethq.io | Cachet |
 | Cachet demo (v3) | https://v3.cachethq.io | Cachet |
+| Polymarket | https://status.polymarket.com | Instatus |
+| Sketch | https://status.sketch.com | Instatus |
+| Todoist | https://status.todoist.net | Instatus |
+| Moneybird | https://status.moneybird.com | Sorry™ |
+| Broadcom | https://status.broadcom.com | Sorry™ |
+| Joinblink | https://status.joinblink.com | Sorry™ |
+| Pingdom | https://status.pingdom.com | Sorry™ |
 
 > Atlassian Statuspage is used by hundreds of services (Cloudflare, Datadog,
 > Twilio, Atlassian, OpenAI, and many more) — just enter any compatible URL.
+>
+> Instatus and Sorry™ are each used by hundreds of services on custom domains —
+> just enter any compatible URL.
 >
 > Cachet is self-hosted, so any self-managed Cachet instance can be monitored
 > by entering its base URL. The demo instances above may not always be available.
