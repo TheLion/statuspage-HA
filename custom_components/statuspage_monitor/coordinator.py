@@ -74,6 +74,10 @@ class StatusPageMonitorCoordinator(DataUpdateCoordinator[StatusPageData]):
                 f"Timeout fetching status data from {self._url}"
             ) from err
         except aiohttp.ClientResponseError as err:
+            if err.status == 429:
+                _LOGGER.warning(
+                    "Rate limited by %s — backing off automatically", self._url
+                )
             raise UpdateFailed(
                 f"HTTP error {err.status} fetching status data from {self._url}"
             ) from err
