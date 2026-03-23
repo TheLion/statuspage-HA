@@ -117,8 +117,8 @@ class SorryProvider:
         async with asyncio.timeout(timeout):
             root, components, notices = await asyncio.gather(
                 cls._get_json(session, f"{url}{_API_ROOT}"),
-                cls._get_all_pages(session, f"{url}{_COMPONENTS_PATH}", "components"),
-                cls._get_all_pages(session, notices_url, "notices"),
+                cls._get_all_pages(session, url, f"{url}{_COMPONENTS_PATH}", "components"),
+                cls._get_all_pages(session, url, notices_url, "notices"),
             )
         return cls._parse(
             root,
@@ -135,12 +135,15 @@ class SorryProvider:
 
     @classmethod
     async def _get_all_pages(
-        cls, session: aiohttp.ClientSession, url: str, key: str
+        cls, session: aiohttp.ClientSession, base_url: str, url: str, key: str
     ) -> list[dict]:
         """Fetch all pages of a paginated Sorry™ endpoint."""
         items: list[dict] = []
         next_url: str | None = url
         while next_url:
+            # next_page from the API can be a relative path.
+            if next_url.startswith("/"):
+                next_url = f"{base_url}{next_url}"
             data = await cls._get_json(session, next_url)
             items.extend(data.get(key, []))
             next_url = (data.get("meta") or {}).get("next_page")
