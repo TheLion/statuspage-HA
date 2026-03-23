@@ -52,57 +52,44 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def _async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Rename legacy entity IDs to their current canonical form.
+    """Rename legacy entity IDs to their current canonical form (single pass).
 
-    Three migrations are applied in order:
+    Migrations applied per entity:
 
     1. Missing ``statuspage_`` prefix — older versions did not set
        ``suggested_object_id``, so HA generated IDs from the device + entity
-       name (e.g. ``sensor.claude_overall_status``).  These are renamed to
-       include the prefix (``sensor.statuspage_claude_overall_status``).
+       name (e.g. ``sensor.claude_overall_status``).
 
-    2. Dutch ``actief_incident_tekst`` suffix — the active-incident sensor was
-       briefly shipped with a Dutch display name ("Actief incident – tekst")
-       and no ``suggested_object_id``, causing HA to derive a Dutch entity ID.
-       These are renamed directly to the canonical ``active_incident_description``
-       suffix.
+    2. Dutch ``actief_incident_tekst`` suffix — briefly shipped with a Dutch
+       display name causing HA to derive a Dutch entity ID.
 
-    3. Intermediate ``active_incident_body`` suffix — a short-lived English name
+    3. Intermediate ``active_incident_body`` suffix — short-lived English name
        before the sensor was renamed to ``active_incident_description``.
     """
     ent_reg = er.async_get(hass)
 
-    # Pass 1: add missing statuspage_ prefix.
-    for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        domain, object_id = entity_entry.entity_id.split(".", 1)
-        if object_id.startswith("statuspage_"):
-            continue
-        new_entity_id = f"{domain}.statuspage_{object_id}"
-        if ent_reg.async_get(new_entity_id) is None:
-            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
-            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
+    _SUFFIX_RENAMES = {
+        "_actief_incident_tekst": "_active_incident_description",
+        "_active_incident_body": "_active_incident_description",
+    }
 
-    # Pass 2: rename Dutch suffix directly to current canonical English suffix.
     for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        if not entity_entry.entity_id.endswith("_actief_incident_tekst"):
-            continue
-        new_entity_id = entity_entry.entity_id.replace(
-            "_actief_incident_tekst", "_active_incident_description"
-        )
-        if ent_reg.async_get(new_entity_id) is None:
-            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
-            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
+        entity_id = entity_entry.entity_id
+        domain, object_id = entity_id.split(".", 1)
 
-    # Pass 3: rename intermediate active_incident_body suffix to active_incident_description.
-    for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        if not entity_entry.entity_id.endswith("_active_incident_body"):
-            continue
-        new_entity_id = entity_entry.entity_id.replace(
-            "_active_incident_body", "_active_incident_description"
-        )
-        if ent_reg.async_get(new_entity_id) is None:
-            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=new_entity_id)
-            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, new_entity_id)
+        # Migration 1: add missing statuspage_ prefix.
+        if not object_id.startswith("statuspage_"):
+            entity_id = f"{domain}.statuspage_{object_id}"
+
+        # Migrations 2 & 3: rename legacy suffixes.
+        for old_suffix, new_suffix in _SUFFIX_RENAMES.items():
+            if entity_id.endswith(old_suffix):
+                entity_id = entity_id[: -len(old_suffix)] + new_suffix
+                break
+
+        if entity_id != entity_entry.entity_id and ent_reg.async_get(entity_id) is None:
+            ent_reg.async_update_entity(entity_entry.entity_id, new_entity_id=entity_id)
+            _LOGGER.info("Migrated entity ID %s → %s", entity_entry.entity_id, entity_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

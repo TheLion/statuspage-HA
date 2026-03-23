@@ -44,6 +44,8 @@ from .const import (
     CONF_PROVIDER,
     CONF_URL,
     DOMAIN,
+    IMPACT_COLORS,
+    IMPACT_SEVERITY,
     INDICATOR_COLORS,
     INDICATOR_ICONS,
     INDICATOR_NONE,
@@ -75,19 +77,6 @@ def _load_provider_logos() -> dict[str, str]:
 
 _PROVIDER_LOGOS: dict[str, str] = _load_provider_logos()
 
-# Map incident impact values to icon colours.
-_IMPACT_COLORS: dict[str, str] = {
-    "critical": "red",
-    "major": "orange",
-    "minor": "yellow",
-    "none": "yellow",
-}
-_IMPACT_SEVERITY: dict[str, int] = {
-    "critical": 3,
-    "major": 2,
-    "minor": 1,
-    "none": 0,
-}
 
 # MDI icon fallbacks per provider (shown when entity_picture is unavailable).
 _PROVIDER_ICONS: dict[str, str] = {
@@ -412,8 +401,8 @@ class ActiveIncidentsSensor(_StatusPageEntity):
         incidents = self._active_incidents
         if not incidents:
             return "green"
-        worst = max(incidents, key=lambda i: _IMPACT_SEVERITY.get(i.impact, 0))
-        return _IMPACT_COLORS.get(worst.impact, "yellow")
+        worst = max(incidents, key=lambda i: IMPACT_SEVERITY.get(i.impact, 0))
+        return IMPACT_COLORS.get(worst.impact, "yellow")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -482,7 +471,7 @@ class ActiveIncidentBodySensor(_StatusPageEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         inc = self._first_incident
-        color = _IMPACT_COLORS.get(inc.impact, "yellow") if inc else "green"
+        color = IMPACT_COLORS.get(inc.impact, "yellow") if inc else "green"
         if not inc:
             return {
                 "icon": self.icon,

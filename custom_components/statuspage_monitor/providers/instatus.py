@@ -123,7 +123,7 @@ class InstatusProvider:
                         )
                         return False
                     return True
-        except Exception as err:  # noqa: BLE001
+        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError) as err:
             _LOGGER.debug(
                 "Instatus detect: exception fetching %s: %s: %s",
                 api_url,
@@ -235,5 +235,5 @@ class InstatusProvider:
                 return None
             start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
             return (start_dt + timedelta(minutes=duration_minutes)).isoformat()
-        except Exception:  # noqa: BLE001
+        except (ValueError, TypeError):
             return None

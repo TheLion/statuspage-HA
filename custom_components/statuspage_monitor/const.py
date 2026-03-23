@@ -86,3 +86,20 @@ COMPONENT_COLORS = {
     COMPONENT_MAJOR_OUTAGE: "red",
     COMPONENT_MAINTENANCE: "blue",
 }
+
+# Incident impact → icon color (differs from INDICATOR_COLORS: "none" impact
+# is still noteworthy → yellow, whereas "none" overall status → green).
+IMPACT_COLORS: dict[str, str] = {
+    "critical": "red",
+    "major": "orange",
+    "minor": "yellow",
+    "none": "yellow",
+}
+
+# Incident impact → severity level (for sorting worst-first).
+IMPACT_SEVERITY: dict[str, int] = {
+    "critical": 3,
+    "major": 2,
+    "minor": 1,
+    "none": 0,
+}

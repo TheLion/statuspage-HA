@@ -84,7 +84,7 @@ class StatuspageIoProvider:
                             list(data.keys()),
                         )
                     return matched
-        except Exception as err:  # noqa: BLE001
+        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError) as err:
             _LOGGER.debug(
                 "Statuspage.io detect: exception fetching %s: %s: %s",
                 api_url,

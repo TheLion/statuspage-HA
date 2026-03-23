@@ -65,7 +65,7 @@ class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
                 except aiohttp.ClientError:
                     errors["base"] = "cannot_connect"
                     provider = None
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.exception("Unexpected error during provider detection")
                     errors["base"] = "unknown"
                     provider = None
@@ -79,7 +79,7 @@ class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
                         data = await provider.fetch(session, url, API_TIMEOUT)
                         page_name = data.page.name
                         provider_meta = data.provider_meta
-                    except Exception:  # noqa: BLE001
+                    except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError):
                         page_name = url
                         provider_meta = None
 

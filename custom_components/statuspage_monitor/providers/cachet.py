@@ -150,6 +150,32 @@ async def _json(resp_or_exc, fallback=None):
         return await r.json(content_type=None)
 
 
+async def _get_all_pages(
+    session: aiohttp.ClientSession,
+    url: str,
+    per_page: int = 100,
+) -> list[dict]:
+    """Fetch all pages of a paginated Cachet endpoint."""
+    items: list[dict] = []
+    page = 1
+    while True:
+        async with session.get(
+            f"{url}?per_page={per_page}&page={page}", headers=_HEADERS
+        ) as resp:
+            if resp.status != 200:
+                break
+            data = await resp.json(content_type=None)
+        page_items = data.get("data", [])
+        if not page_items:
+            break
+        items.extend(page_items)
+        meta = data.get("meta", {}).get("pagination", {})
+        if page >= meta.get("total_pages", 1):
+            break
+        page += 1
+    return items
+
+
 def _hostname_name(url: str) -> str:
     host = urlparse(url).netloc
     for prefix in ("status.", "statuspage.", "www."):
@@ -198,7 +224,7 @@ async def _get_api_prefix(
                         data = await resp.json(content_type=None)
                         if data.get("data") == "Pong!":
                             return prefix
-        except Exception as err:  # noqa: BLE001
+        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError) as err:
             _LOGGER.debug(
                 "Cachet: ping %s%s/ping failed: %s: %s",
                 url, prefix, type(err).__name__, err,
@@ -249,29 +275,20 @@ class CachetProvider:
 
         # Fetch components, incidents, and (v2-only) schedules in parallel.
         coros = [
-            session.get(f"{url}{prefix}/components?per_page=100", headers=_HEADERS),
-            session.get(f"{url}{prefix}/incidents?per_page=50", headers=_HEADERS),
+            _get_all_pages(session, f"{url}{prefix}/components", per_page=100),
+            _get_all_pages(session, f"{url}{prefix}/incidents", per_page=50),
         ]
         if is_v2:
             coros.append(
-                session.get(f"{url}{prefix}/schedules?per_page=50", headers=_HEADERS)
+                _get_all_pages(session, f"{url}{prefix}/schedules", per_page=50)
             )
 
         async with asyncio.timeout(timeout):
-            results = await asyncio.gather(*coros, return_exceptions=True)
+            results = await asyncio.gather(*coros)
 
-        json_coros = [_json(results[0], {}), _json(results[1], {})]
-        if is_v2:
-            json_coros.append(_json(results[2], {}))
-
-        json_results = await asyncio.gather(*json_coros)
-        components_data = json_results[0]
-        incidents_data = json_results[1]
-        schedules_data = json_results[2] if is_v2 else {}
-
-        raw_components = [_extract_attrs(c) for c in components_data.get("data", [])]
-        raw_incidents  = [_extract_attrs(i) for i in incidents_data.get("data", [])]
-        raw_schedules  = [_extract_attrs(s) for s in (schedules_data or {}).get("data", [])]
+        raw_components = [_extract_attrs(c) for c in results[0]]
+        raw_incidents  = [_extract_attrs(i) for i in results[1]]
+        raw_schedules  = [_extract_attrs(s) for s in results[2]] if is_v2 else []
 
         # Overall status — derived from worst component.
         worst_severity = max(

@@ -97,7 +97,10 @@ _LOGGER = logging.getLogger(__name__)
 _HEADERS = {"Accept": "application/json"}
 _API_BASE = "https://api.status.io/1.0"
 
-_PAGE_ID_RE = re.compile(r"var\s+statuspageId\s*=\s*['\"]([a-f0-9]{24})['\"]")
+_PAGE_ID_RE = re.compile(
+    r"(?:var\s+)?statuspageId\s*[:=]\s*['\"]([a-f0-9]{24})['\"]",
+    re.IGNORECASE,
+)
 _TITLE_RE = re.compile(r"<title[^>]*>([^<]+)</title>", re.IGNORECASE)
 
 _CODE_TO_INDICATOR: dict[int, str] = {
@@ -155,7 +158,7 @@ async def _fetch_page_html(
                 if title.endswith(suffix):
                     title = title[: -len(suffix)].strip()
         return page_id, title or _hostname_name(url)
-    except Exception as err:  # noqa: BLE001
+    except (asyncio.TimeoutError, aiohttp.ClientError, ValueError) as err:
         _LOGGER.debug("Status.io: HTML fetch failed for %s: %s", url, err)
         return None, None
 
@@ -191,7 +194,7 @@ class StatusIoProvider:
                         return False
                     data = await resp.json(content_type=None)
                     return "result" in data
-        except Exception as err:  # noqa: BLE001
+        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError) as err:
             _LOGGER.debug(
                 "Status.io detect: API call failed %s: %s: %s",
                 api_url, type(err).__name__, err,
