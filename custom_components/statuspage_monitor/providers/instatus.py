@@ -138,6 +138,8 @@ class InstatusProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch summary and components in parallel and return StatusPageData."""
         async with asyncio.timeout(timeout):

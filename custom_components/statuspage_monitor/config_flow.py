@@ -17,6 +17,7 @@ from .const import (
     API_TIMEOUT,
     CONF_PAGE_NAME,
     CONF_PROVIDER,
+    CONF_PROVIDER_META,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     DEFAULT_SCAN_INTERVAL,
@@ -77,22 +78,28 @@ class StatusPageMonitorConfigFlow(ConfigFlow, domain=DOMAIN):
                     try:
                         data = await provider.fetch(session, url, API_TIMEOUT)
                         page_name = data.page.name
+                        provider_meta = data.provider_meta
                     except Exception:  # noqa: BLE001
                         page_name = url
+                        provider_meta = None
 
                     await self.async_set_unique_id(url.lower())
                     self._abort_if_unique_id_configured()
 
+                    entry_data: dict[str, Any] = {
+                        CONF_URL: url,
+                        CONF_PROVIDER: provider.ID,
+                        CONF_PAGE_NAME: page_name,
+                        CONF_SCAN_INTERVAL: user_input.get(
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                        ),
+                    }
+                    if provider_meta:
+                        entry_data[CONF_PROVIDER_META] = provider_meta
+
                     return self.async_create_entry(
                         title=page_name,
-                        data={
-                            CONF_URL: url,
-                            CONF_PROVIDER: provider.ID,
-                            CONF_PAGE_NAME: page_name,
-                            CONF_SCAN_INTERVAL: user_input.get(
-                                CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-                            ),
-                        },
+                        data=entry_data,
                     )
 
         schema = vol.Schema(

@@ -99,6 +99,8 @@ class StatuspageIoProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch the summary endpoint and return normalised StatusPageData."""
         api_url = f"{url}{_API_PATH}"

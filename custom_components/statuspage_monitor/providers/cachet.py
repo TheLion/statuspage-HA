@@ -233,31 +233,41 @@ class CachetProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch current status and return normalised StatusPageData."""
-        prefix = await _get_api_prefix(session, url, timeout)
-        if not prefix:
-            raise ValueError(f"Cachet API not reachable at {url}")
+        # Use cached metadata when available to skip the ping probe.
+        if meta and meta.get("api_prefix"):
+            prefix = meta["api_prefix"]
+        else:
+            prefix = await _get_api_prefix(session, url, timeout)
+            if not prefix:
+                raise ValueError(f"Cachet API not reachable at {url}")
 
         is_v2 = prefix == "/api/v1"
 
         # Fetch components, incidents, and (v2-only) schedules in parallel.
-        async with asyncio.timeout(timeout):
-            results = await asyncio.gather(
-                session.get(f"{url}{prefix}/components?per_page=100", headers=_HEADERS),
-                session.get(f"{url}{prefix}/incidents?per_page=50", headers=_HEADERS),
+        coros = [
+            session.get(f"{url}{prefix}/components?per_page=100", headers=_HEADERS),
+            session.get(f"{url}{prefix}/incidents?per_page=50", headers=_HEADERS),
+        ]
+        if is_v2:
+            coros.append(
                 session.get(f"{url}{prefix}/schedules?per_page=50", headers=_HEADERS)
-                    if is_v2 else asyncio.sleep(0),
-                return_exceptions=True,
             )
 
-        components_data, incidents_data, schedules_data = await asyncio.gather(
-            _json(results[0], {}),
-            _json(results[1], {}),
-            _json(results[2], {}) if is_v2 else asyncio.sleep(0),
-        )
-        if not is_v2:
-            schedules_data = {}
+        async with asyncio.timeout(timeout):
+            results = await asyncio.gather(*coros, return_exceptions=True)
+
+        json_coros = [_json(results[0], {}), _json(results[1], {})]
+        if is_v2:
+            json_coros.append(_json(results[2], {}))
+
+        json_results = await asyncio.gather(*json_coros)
+        components_data = json_results[0]
+        incidents_data = json_results[1]
+        schedules_data = json_results[2] if is_v2 else {}
 
         raw_components = [_extract_attrs(c) for c in components_data.get("data", [])]
         raw_incidents  = [_extract_attrs(i) for i in incidents_data.get("data", [])]
@@ -327,4 +337,5 @@ class CachetProvider:
             incidents=incidents,
             scheduled_maintenances=maintenances,
             components=components,
+            provider_meta={"api_prefix": prefix},
         )

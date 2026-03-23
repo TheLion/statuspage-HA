@@ -180,11 +180,19 @@ class UptimeRobotProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch current status and return normalised StatusPageData."""
-        api_path, events_path, page_name = await _fetch_page_info(session, url, timeout)
-        if not api_path:
-            raise ValueError(f"Could not extract UptimeRobot API path from {url}")
+        # Use cached metadata when available to skip the HTML fetch.
+        if meta and meta.get("api_path"):
+            api_path = meta["api_path"]
+            events_path = meta.get("events_path")
+            page_name = meta.get("page_name") or _hostname_name(url)
+        else:
+            api_path, events_path, page_name = await _fetch_page_info(session, url, timeout)
+            if not api_path:
+                raise ValueError(f"Could not extract UptimeRobot API path from {url}")
 
         # Fetch monitors and events in parallel.
         async with asyncio.timeout(timeout):
@@ -268,10 +276,15 @@ class UptimeRobotProvider:
                     body=ev_body,
                 ))
 
+        provider_meta = {"api_path": api_path, "page_name": page_name or ""}
+        if events_path:
+            provider_meta["events_path"] = events_path
+
         return StatusPageData(
             page=page,
             status=status,
             incidents=incidents,
             scheduled_maintenances=maintenances,
             components=components,
+            provider_meta=provider_meta,
         )

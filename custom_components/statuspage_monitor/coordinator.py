@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     API_TIMEOUT,
+    CONF_PROVIDER_META,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     DEFAULT_SCAN_INTERVAL,
@@ -44,6 +45,7 @@ class StatusPageMonitorCoordinator(DataUpdateCoordinator[StatusPageData]):
         """Initialise the coordinator with a specific provider."""
         self._url = entry.data[CONF_URL].rstrip("/")
         self._provider = provider_class
+        self._meta: dict[str, str] | None = entry.data.get(CONF_PROVIDER_META)
         scan_interval = entry.options.get(
             CONF_SCAN_INTERVAL,
             entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -64,7 +66,9 @@ class StatusPageMonitorCoordinator(DataUpdateCoordinator[StatusPageData]):
         """Fetch data from the status page via the configured provider."""
         session = async_get_clientsession(self.hass)
         try:
-            return await self._provider.fetch(session, self._url, API_TIMEOUT)
+            return await self._provider.fetch(
+                session, self._url, API_TIMEOUT, meta=self._meta
+            )
         except asyncio.TimeoutError as err:
             raise UpdateFailed(
                 f"Timeout fetching status data from {self._url}"
