@@ -135,16 +135,29 @@ class SorryProvider:
 
     @classmethod
     async def _get_all_pages(
-        cls, session: aiohttp.ClientSession, base_url: str, url: str, key: str
+        cls,
+        session: aiohttp.ClientSession,
+        base_url: str,
+        url: str,
+        key: str,
+        *,
+        max_pages: int = 10,
     ) -> list[dict]:
         """Fetch all pages of a paginated Sorry™ endpoint."""
         items: list[dict] = []
         next_url: str | None = url
-        while next_url:
+        for _ in range(max_pages):
+            if not next_url:
+                break
             # next_page from the API can be a relative path.
             if next_url.startswith("/"):
                 next_url = f"{base_url}{next_url}"
-            data = await cls._get_json(session, next_url)
+            async with session.get(next_url, headers=_HEADERS) as resp:
+                if resp.status == 429:
+                    _LOGGER.debug("Sorry: rate limited at %s, returning partial results", next_url)
+                    break
+                resp.raise_for_status()
+                data = await resp.json(content_type=None)
             items.extend(data.get(key, []))
             next_url = (data.get("meta") or {}).get("next_page")
         return items
