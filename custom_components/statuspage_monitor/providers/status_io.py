@@ -204,11 +204,18 @@ class StatusIoProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch current status and return normalised StatusPageData."""
-        page_id, page_name = await _fetch_page_html(session, url, timeout)
-        if not page_id:
-            raise ValueError(f"Could not extract Status.io page_id from {url}")
+        # Use cached metadata when available to skip the HTML fetch.
+        if meta and meta.get("page_id"):
+            page_id = meta["page_id"]
+            page_name = meta.get("page_name") or _hostname_name(url)
+        else:
+            page_id, page_name = await _fetch_page_html(session, url, timeout)
+            if not page_id:
+                raise ValueError(f"Could not extract Status.io page_id from {url}")
 
         async with asyncio.timeout(timeout):
             async with session.get(
@@ -287,4 +294,5 @@ class StatusIoProvider:
             incidents=incidents,
             scheduled_maintenances=maintenances,
             components=components,
+            provider_meta={"page_id": page_id, "page_name": page_name or ""},
         )

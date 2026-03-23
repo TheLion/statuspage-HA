@@ -109,6 +109,8 @@ class SorryProvider:
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch page info, components, and active notices in parallel."""
         notices_url = f"{url}{_NOTICES_PATH}?timeline_state=present"

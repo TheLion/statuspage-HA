@@ -8,6 +8,7 @@ CONF_URL = "url"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_PROVIDER = "provider"
 CONF_PAGE_NAME = "page_name"
+CONF_PROVIDER_META = "provider_meta"
 
 # Defaults and limits
 DEFAULT_SCAN_INTERVAL = 60  # seconds

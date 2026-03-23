@@ -98,6 +98,7 @@ class StatusPageData:
     incidents: list[Incident] = field(default_factory=list)
     scheduled_maintenances: list[Maintenance] = field(default_factory=list)
     components: list[Component] = field(default_factory=list)
+    provider_meta: dict[str, str] | None = None
 
 
 @runtime_checkable
@@ -123,6 +124,8 @@ class StatusPageProvider(Protocol):
         session: aiohttp.ClientSession,
         url: str,
         timeout: int,
+        *,
+        meta: dict[str, str] | None = None,
     ) -> StatusPageData:
         """Fetch current status and return a normalised StatusPageData."""
         ...
