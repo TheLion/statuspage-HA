@@ -154,14 +154,17 @@ async def _get_all_pages(
     session: aiohttp.ClientSession,
     url: str,
     per_page: int = 100,
+    max_pages: int = 10,
 ) -> list[dict]:
     """Fetch all pages of a paginated Cachet endpoint."""
     items: list[dict] = []
-    page = 1
-    while True:
+    for page in range(1, max_pages + 1):
         async with session.get(
             f"{url}?per_page={per_page}&page={page}", headers=_HEADERS
         ) as resp:
+            if resp.status == 429:
+                _LOGGER.debug("Cachet: rate limited at %s page %d, returning partial results", url, page)
+                break
             if resp.status != 200:
                 break
             data = await resp.json(content_type=None)
@@ -172,7 +175,6 @@ async def _get_all_pages(
         meta = data.get("meta", {}).get("pagination", {})
         if page >= meta.get("total_pages", 1):
             break
-        page += 1
     return items
 
 
