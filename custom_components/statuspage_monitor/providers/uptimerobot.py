@@ -147,7 +147,7 @@ async def _fetch_page_info(
                     title = title[: -len(suffix)].strip()
         page_name = title or _hostname_name(url)
         return api_path, events_path, page_name
-    except Exception as err:  # noqa: BLE001
+    except (asyncio.TimeoutError, aiohttp.ClientError, ValueError) as err:
         _LOGGER.debug("UptimeRobot: HTML fetch failed for %s: %s", url, err)
         return None, None, None
 

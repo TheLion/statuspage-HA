@@ -94,7 +94,7 @@ class SorryProvider:
                         return False
                     links = page.get("links", {})
                     return bool(links.get("components") and links.get("notices"))
-        except Exception as err:  # noqa: BLE001
+        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError) as err:
             _LOGGER.debug(
                 "Sorry detect: exception fetching %s: %s: %s",
                 api_url,
@@ -115,18 +115,36 @@ class SorryProvider:
         """Fetch page info, components, and active notices in parallel."""
         notices_url = f"{url}{_NOTICES_PATH}?timeline_state=present"
         async with asyncio.timeout(timeout):
-            root, comp_data, notices_data = await asyncio.gather(
+            root, components, notices = await asyncio.gather(
                 cls._get_json(session, f"{url}{_API_ROOT}"),
-                cls._get_json(session, f"{url}{_COMPONENTS_PATH}"),
-                cls._get_json(session, notices_url),
+                cls._get_all_pages(session, f"{url}{_COMPONENTS_PATH}", "components"),
+                cls._get_all_pages(session, notices_url, "notices"),
             )
-        return cls._parse(root, comp_data, notices_data, url)
+        return cls._parse(
+            root,
+            {"components": components},
+            {"notices": notices},
+            url,
+        )
 
     @classmethod
     async def _get_json(cls, session: aiohttp.ClientSession, url: str) -> dict:
         async with session.get(url, headers=_HEADERS) as resp:
             resp.raise_for_status()
             return await resp.json(content_type=None)
+
+    @classmethod
+    async def _get_all_pages(
+        cls, session: aiohttp.ClientSession, url: str, key: str
+    ) -> list[dict]:
+        """Fetch all pages of a paginated Sorry™ endpoint."""
+        items: list[dict] = []
+        next_url: str | None = url
+        while next_url:
+            data = await cls._get_json(session, next_url)
+            items.extend(data.get(key, []))
+            next_url = (data.get("meta") or {}).get("next_page")
+        return items
 
     @classmethod
     def _parse(
