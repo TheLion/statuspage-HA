@@ -221,10 +221,30 @@ Repeat for each additional status page. Every page is an independent device.
 
 **Settings → Devices & Services → StatusPage Monitor → Configure**
 
-### Rate limiting
+### Polling interval and rate limits
 
-Polling faster than 30 seconds is not recommended and may result in temporary
-throttling by some providers. The integration enforces a minimum of 30 seconds.
+The default polling interval is **60 seconds** (minimum 30 s, maximum 3600 s).
+This is safe for all supported providers. If you lower the interval, be aware of
+the rate limits below — polling too aggressively will result in **HTTP 429
+(Too Many Requests)** errors and the integration will temporarily become
+unavailable until the limit resets.
+
+The integration handles 429 responses gracefully (automatic backoff), but
+prevention is better than recovery.
+
+| Provider | Public API rate limit | Safe minimum interval |
+|----------|----------------------|-----------------------|
+| **Atlassian Statuspage** | No limit on public Status API | 30 s |
+| **Status.io** | No limit on public Status API | 30 s |
+| **Instatus** | Not documented | 30 s |
+| **Sorry™** | 10 requests/second | 30 s |
+| **UptimeRobot** | 10 requests/minute (free plan) | 30 s |
+| **Cachet** | 300 requests/minute (default, configurable by host) | 30 s |
+
+> **Note:** UptimeRobot's free tier is the most restrictive at 10 req/min.
+> At the default 60 s interval the integration uses 1–2 requests per poll
+> (depending on the event feed), well within limits. Lowering the interval
+> to 30 s is still safe but leaves less headroom.
 
 ---
 
