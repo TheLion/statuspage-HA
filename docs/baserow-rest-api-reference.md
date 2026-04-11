@@ -1,7 +1,7 @@
 # Baserow REST API Referentie
 
-**Datum:** 2026-04-05
-**Status:** Fase 2 — gereed voor gebruik in skills (Fase 3)
+**Datum:** 2026-04-11
+**Status:** Fase 1B — schema opgeschoond; `name`/`question`/`context`/`feature`/`external_id` verwijderd; `scope` toegevoegd
 
 > ## ⚠️ GEDEELD BESTAND — KOPIE IN MEERDERE PROJECTEN
 >
@@ -38,7 +38,7 @@
 | Base URL | `https://baserow.fourpets.net` |
 | Table ID (Inbox) | `815` |
 | Authenticatie | Database API token via env var `BASEROW_API_TOKEN` |
-| Token (huidig) | `[REDACTED-BASEROW-TOKEN]` ← wordt env var in Fase 3 |
+| Token (huidig) | `[REDACTED-BASEROW-TOKEN]` |
 
 **Token instellen (vereist voor skills):**
 ```bash
@@ -47,23 +47,48 @@ export BASEROW_API_TOKEN="[REDACTED-BASEROW-TOKEN]"
 
 **Waarom Database token (niet JWT):**
 - Geen expiry
-- Al aanwezig in de skill (file uploads)
-- Voldoende voor CRUD op rijen
+- Voldoende voor CRUD op rijen in tabel 815
+- **Beperking**: kan geen velden toevoegen/verwijderen (`/api/database/fields/...`) — dat vereist JWT/admin
 
 ---
 
-## Endpoint mapping: MCP → REST API
+## Schema — tabel 815 (Inbox)
 
-| MCP operatie | REST API endpoint |
-|--------------|-------------------|
-| `list_table_rows(table_id, ...)` | `GET /api/database/rows/table/{table_id}/` |
-| `create_row_table_815(row)` | `POST /api/database/rows/table/815/` |
-| `update_row_table_815(id, row)` | `PATCH /api/database/rows/table/815/{id}/` |
-| `delete_table_row(table_id, id)` | `DELETE /api/database/rows/table/{table_id}/{id}/` |
-| *(niet gebruikt in skills)* | `GET /api/database/fields/table/{table_id}/` |
+**21 velden** (na Fase 1B opschoning).
 
-**Altijd meegeven:** `?user_field_names=true`  
-→ Veldnamen zijn dan leesbare strings (bijv. `"project"`) in plaats van `"field_23"`.
+### Velden-overzicht
+
+| Field ID | Veld | Type | Rol |
+|---|---|---|---|
+| 7536 | `display_name` | text | **Verplicht** — primair label, enige naamveld |
+| 7537 | `project` | single_select | **Verplicht** — welke app deze row hoort (zie opties) |
+| 7543 | `scope` | multiple_select | **Verplicht** — `project` (default) of `global` (cross-project kennis) |
+| 7519 | `type` | single_select | **Verplicht** — feature / backlog / decision / question |
+| 7538 | `phase` | single_select | **Verplicht** — Idea / Definition / MVP / Build / Scale / Polish |
+| 7523 | `status` | single_select | **Verplicht** — idea / planned / doing / done / open / obsolete / released |
+| 7524 | `priority` | single_select | Optioneel — low / medium / high |
+| 7534 | `summary` | long_text | **Verplicht** bij nieuwe records — compacte tekst die Claude Code standaard inlaadt |
+| 7522 | `description` | text | **Optioneel** — uitgebreide rationale; **niet standaard ophalen** (alleen on-demand bij onvoldoende info in summary) |
+| 7525 | `rationale` | text | Optioneel — waarom deze beslissing/feature |
+| 7530 | `notes` | text | Optioneel — vrije opmerkingen, beantwoorde vragen, context-fragmenten |
+| 7531 | `source` | text | **Verplicht** — `claude` of `Martijn Janssen` |
+| 7526 | `date` | date | **Verplicht** bij sessie-items — ISO 8601 |
+| 7539 | `search_index` | text | **Verplicht** — 4–6 keywords lowercase |
+| 7521 | `title` | text | Optioneel — alternatief label indien afwijkend van display_name |
+| 7533 | `notion_link` | text | Optioneel — link naar Notion (**kandidaat voor verwijdering**, zie Fase 2) |
+| 7535 | `parent_feature` | link_row (→ 815) | Optioneel — hiërarchie |
+| 7540 | `depends_on` | link_row (→ 815) | Optioneel — dependencies |
+| 7541 | `file` | file | Optioneel — bijlagen |
+
+### Verwijderde velden (Fase 1B, 2026-04-11)
+
+| Was | Reden |
+|---|---|
+| `name` (7520) | 98% duplicaat van `display_name` — verwarrend voor Claude Code |
+| `question` (7528) | Samengevoegd naar `notes` met `Vraag: …\n` prefix |
+| `context` (7529) | Samengevoegd naar `notes` met `Context: …\n` prefix |
+| `feature` | Eerder verwijderd (handmatig) |
+| `external_id` | Eerder verwijderd (handmatig) |
 
 ---
 
@@ -71,14 +96,15 @@ export BASEROW_API_TOKEN="[REDACTED-BASEROW-TOKEN]"
 
 ### Schrijven (POST/PATCH body) — tekst-waarden
 
-Met `user_field_names=true` accepteert de REST API single-select waarden als **tekst** in de request body:
+Met `user_field_names=true` accepteert de REST API single-select waarden als **tekst** en multi-select als **array van tekst**:
 
 ```json
-"status":  "open" | "done" | "idea" | "obsolete"
-"type":    "feature" | "backlog" | "decision" | "question"
-"project": "BundleVue" | "ProxmoxVue" | "statuspage-HA" | "Baserow Webapp" | "VueSpeed"
-"phase":   "Definition" | "MVP" | "Build" | "Scale" | "Polish"
+"status":   "idea" | "planned" | "doing" | "done" | "open" | "obsolete" | "released"
+"type":     "feature" | "backlog" | "decision" | "question"
+"project":  "BundleVue" | "ProxmoxVue" | "statuspage-HA" | "Baserow Webapp" | "VueSpeed" | "MotionSense" | "GolfCaddy"
+"phase":    "Idea" | "Definition" | "MVP" | "Build" | "Scale" | "Polish"
 "priority": "low" | "medium" | "high"
+"scope":    ["project"]  // of ["global"], of ["project","global"]
 ```
 
 ### Filteren — numerieke IDs vereist
@@ -92,15 +118,21 @@ Met `user_field_names=true` accepteert de REST API single-select waarden als **t
 | | | statuspage-HA | 3201 |
 | | | Baserow Webapp | 3209 |
 | | | VueSpeed | 3211 |
+| | | MotionSense | 3213 |
+| | | GolfCaddy | 3214 |
 | **type** | 7519 | feature | 3187 |
 | | | backlog | 3188 |
 | | | decision | 3189 |
 | | | question | 3190 |
 | **status** | 7523 | idea | 3191 |
+| | | planned | 3192 |
+| | | doing | 3193 |
 | | | done | 3194 |
 | | | open | 3195 |
 | | | obsolete | 3208 |
-| **phase** | 7538 | Definition | 3203 |
+| | | released | 3212 |
+| **phase** | 7538 | Idea | 3202 |
+| | | Definition | 3203 |
 | | | MVP | 3204 |
 | | | Build | 3205 |
 | | | Scale | 3206 |
@@ -108,6 +140,8 @@ Met `user_field_names=true` accepteert de REST API single-select waarden als **t
 | **priority** | 7524 | low | 3196 |
 | | | medium | 3197 |
 | | | high | 3198 |
+| **scope** (multi) | 7543 | project | 3217 |
+| | | global | 3218 |
 
 Overige field IDs (tekstvelden — filter met `equal` + tekst-waarde):
 
@@ -127,7 +161,7 @@ Overige field IDs (tekstvelden — filter met `equal` + tekst-waarde):
 
 **Date veld** — ISO 8601:
 ```json
-"date": "2026-04-05T00:00:00Z"
+"date": "2026-04-11T00:00:00Z"
 ```
 
 ---
@@ -165,6 +199,14 @@ curl -s --show-error \
   "${BASE_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=10&filter_type=AND&filter__field_7537__single_select_equal=3199&filter__field_7519__single_select_equal=3188"
 ```
 
+**Global-scope kennis ophalen (cross-project, werkt voor elke sessie):**
+```bash
+# scope=global → field 7543, option 3218 (multiple_select_has)
+curl -s --show-error \
+  -H "${AUTH_HEADER}" \
+  "${BASE_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=20&filter__field_7543__multiple_select_has=3218"
+```
+
 **Met zoekterm (search — werkt op alle tekstvelden):**
 ```bash
 curl -s --show-error \
@@ -187,7 +229,7 @@ curl -s --show-error \
   "${BASE_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=10&page=2&filter__field_7537__single_select_equal=3199"
 ```
 
-**Respons verwerken met jq:**
+**Respons verwerken met jq — altijd summary i.p.v. description:**
 ```bash
 RESPONSE=$(curl -s --show-error \
   -H "${AUTH_HEADER}" \
@@ -197,19 +239,21 @@ RESPONSE=$(curl -s --show-error \
 TOTAL=$(echo "${RESPONSE}" | jq '.count')
 ROWS=$(echo "${RESPONSE}" | jq '.results')
 
-# Specifiek veld per rij
-echo "${RESPONSE}" | jq '.results[] | {id: .id, name: .display_name, status: .status.value}'
+# Compacte weergave (Claude Code default) — alleen summary, NIET description
+echo "${RESPONSE}" | jq '.results[] | {id, name: .display_name, status: .status.value, phase: .phase.value, summary}'
 ```
 
 > **Noot:** Single-select velden komen terug als object: `{"id": 3195, "value": "open"}`. Gebruik `.status.value` om de tekst te lezen.
+> Multi-select (`scope`) komt terug als array: `[{"id": 3217, "value": "project"}]`. Gebruik `[.scope[].value]` om een tekst-array te maken.
 >
-> **Filtersyntax:** `filter__{veldnaam}__{type}=waarde` werkt correct zolang `user_field_names=true` wordt meegestuurd. Field IDs (`filter__field_23__...`) zijn alleen nodig bij veldnamen met speciale tekens — niet van toepassing hier.
+> **Beperk jq-projecties tot `summary`** — haal `description` alleen on-demand op (`jq '.results[] | select(.id==812) | .description'`) als de summary te weinig info bevat.
 
 **Regels (conform knowledge manager skill):**
 - `size` nooit > 20, bij voorkeur ≤ 10
-- Altijd eerst filteren op `project`
+- Altijd eerst filteren op `project` (of `scope=global` voor cross-project kennis)
 - Daarna op `type` indien bekend
 - Dan zoeken op keywords
+- **Lees `summary` standaard, `description` nooit automatisch**
 
 ---
 
@@ -226,11 +270,13 @@ HTTP_STATUS=$(curl -s --show-error \
     "display_name": "iOS: Widget drempelwaarde",
     "type": "backlog",
     "project": "BundleVue",
+    "scope": ["project"],
     "phase": "Polish",
     "status": "open",
     "source": "claude",
-    "date": "2026-04-05T00:00:00Z",
+    "date": "2026-04-11T00:00:00Z",
     "search_index": "widget drempel threshold ios notification",
+    "summary": "iOS widget toont nu altijd de huidige waarde; drempel-gedrag moet configureerbaar worden via Settings.",
     "title": "iOS: Widget drempelwaarde"
   }' \
   "${BASE_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true")
@@ -250,15 +296,18 @@ echo "Aangemaakt: rij ${NEW_ROW_ID}"
 
 | Veld | Vereist | Opmerking |
 |------|---------|-----------|
-| `display_name` | Altijd | Primair label |
+| `display_name` | Altijd | Primair label, enige naamveld |
+| `project` | Altijd | BundleVue / ProxmoxVue / statuspage-HA / Baserow Webapp / VueSpeed / MotionSense / GolfCaddy |
+| `scope` | Altijd | `["project"]` default, `["global"]` voor cross-project kennis |
 | `type` | Altijd | feature / backlog / decision / question |
-| `project` | Altijd | BundleVue / ProxmoxVue |
-| `phase` | Altijd | Definition / MVP / Build / Scale / Polish |
+| `phase` | Altijd | Idea / Definition / MVP / Build / Scale / Polish |
 | `status` | Altijd | Zie type → status mapping |
-| `source` | Altijd | "claude" |
+| `source` | Altijd | `claude` of `Martijn Janssen` |
+| `summary` | Altijd | Compacte tekst (1–3 zinnen); dit is wat Claude Code standaard laadt |
 | `search_index` | Altijd | 4–6 keywords, lowercase |
 | `date` | Sessie-items | ISO 8601, gebruik huidige datum |
-| `notion_link` | Alleen als source=Notion | URL naar Notion-pagina |
+| `description` | Optioneel | Alleen bij complexe rationale; wordt **niet** standaard opgehaald |
+| `notes` | Optioneel | Vrije opmerkingen, beantwoorde vragen, context-fragmenten |
 
 ---
 
@@ -285,18 +334,36 @@ if [ "${HTTP_STATUS}" != "200" ]; then
 fi
 ```
 
-**Meerdere velden tegelijk:**
+**Meerdere velden tegelijk (bv. een row upgraden naar global):**
 ```bash
 curl -s --show-error \
   -X PATCH \
   -H "${AUTH_HEADER}" \
   -H "${CONTENT_HEADER}" \
   -d '{
-    "status": "obsolete",
-    "notion_link": "https://www.notion.so/328452a9a8af8169a41df7de32bb19dd"
+    "scope": ["global"],
+    "notes": "Geldt voor alle iOS projecten."
   }' \
   "${BASE_URL}/api/database/rows/table/${TABLE_ID}/${ROW_ID}/?user_field_names=true"
 ```
+
+### Batch-update meerdere rijen
+
+```bash
+curl -s --show-error \
+  -X PATCH \
+  -H "${AUTH_HEADER}" \
+  -H "${CONTENT_HEADER}" \
+  -d '{
+    "items": [
+      {"id": 812, "status": "done"},
+      {"id": 813, "status": "done"}
+    ]
+  }' \
+  "${BASE_URL}/api/database/rows/table/${TABLE_ID}/batch/?user_field_names=true"
+```
+
+Max 200 items per batch.
 
 ---
 
@@ -365,7 +432,7 @@ rm -f /tmp/session-summary.md
 curl -s --show-error \
   -H "${AUTH_HEADER}" \
   "${BASE_URL}/api/database/fields/table/${TABLE_ID}/" \
-  | jq '.[] | {id: .id, name: .name, type: .type}'
+  | jq '.[] | {id, name, type}'
 ```
 
 ---
@@ -384,10 +451,12 @@ curl -s --show-error \
       "display_name": "iOS: Widget drempelwaarde",
       "type": {"id": 3188, "value": "backlog"},
       "project": {"id": 3199, "value": "BundleVue"},
+      "scope": [{"id": 3217, "value": "project"}],
       "status": {"id": 3195, "value": "open"},
       "phase": {"id": 3207, "value": "Polish"},
+      "summary": "iOS widget toont nu altijd de huidige waarde; drempel-gedrag moet configureerbaar worden via Settings.",
       "search_index": "widget drempel threshold ios notification",
-      "date": "2026-04-05T00:00:00Z",
+      "date": "2026-04-11T00:00:00Z",
       "source": "claude"
     }
   ]
@@ -398,6 +467,7 @@ curl -s --show-error \
 ```bash
 echo "${RESPONSE}" | jq '.results[] | .status.value'      # "open"
 echo "${RESPONSE}" | jq '.results[] | .project.value'     # "BundleVue"
+echo "${RESPONSE}" | jq '.results[] | [.scope[].value]'   # ["project"]
 ```
 
 ---
@@ -409,7 +479,7 @@ echo "${RESPONSE}" | jq '.results[] | .project.value'     # "BundleVue"
 | 200 / 201 | Succes | Verwerk response |
 | 204 | Succes (delete) | Geen body |
 | 400 | Validatiefout | Log body, stop |
-| 401 | Token ongeldig | Check BASEROW_API_TOKEN |
+| 401 | Token ongeldig / admin vereist | Check BASEROW_API_TOKEN; field-mutaties vereisen JWT |
 | 404 | Rij/tabel niet gevonden | Check row_id / table_id |
 | 429 | Rate limit | Wacht, retry |
 | 5xx | Server error | Log, meld aan gebruiker |
@@ -424,7 +494,7 @@ fi
 
 ---
 
-## Instructies voor skills (Fase 3)
+## Instructies voor skills
 
 Skills moeten de volgende conventies hanteren:
 
@@ -433,7 +503,11 @@ Skills moeten de volgende conventies hanteren:
 3. **Altijd** HTTP-statuscode controleren via `-w "%{http_code}"` + `-o /tmp/...`
 4. **Altijd** `--silent --show-error` bij curl
 5. **Single-select** als tekst schrijven: `"status": "open"` (niet als ID)
-6. **Single-select** bij lezen: `.status.value` (niet `.status`)
-7. **Nooit** meer dan 20 rijen ophalen (size ≤ 10 bij voorkeur)
-8. **Altijd** filteren op project voordat er gezocht wordt
-9. **Bash uitvoeren via Bash tool** — curl is een shell-commando, geen MCP tool
+6. **Multi-select** (`scope`) als array van tekst: `"scope": ["project"]`
+7. **Single-select** bij lezen: `.status.value` (niet `.status`)
+8. **Multi-select** bij lezen: `[.scope[].value]`
+9. **Summary is de standaard** — haal `description` alleen op bij expliciete vraag
+10. **Nooit** meer dan 20 rijen ophalen (size ≤ 10 bij voorkeur)
+11. **Altijd** filteren op project (of `scope=global`) voordat er gezocht wordt
+12. **Bij create**: verplicht zijn `display_name`, `project`, `scope`, `type`, `phase`, `status`, `source`, `summary`, `search_index`
+13. **Bash uitvoeren via Bash tool** — curl is een shell-commando, geen MCP tool
