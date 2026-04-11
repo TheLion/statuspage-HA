@@ -8,24 +8,26 @@
 > Dit bestand bestaat in meerdere project-repo's omdat meerdere projecten Baserow gebruiken.
 > **Als je dit bestand wijzigt, propageer de wijziging naar ALLE kopieën.**
 >
-> Bekende locaties:
+> Bekende locaties (7 kopieën, sync op 2026-04-11):
 > - `~/Documents/Apps/BundleVue/docs/baserow-rest-api-reference.md` (authoritative source)
 > - `~/Documents/Apps/MotionSense/docs/baserow-rest-api-reference.md`
 > - `~/Documents/Apps/ProxmoxVue/docs/baserow-rest-api-reference.md`
 > - `~/Documents/Apps/statuspage-HA/docs/baserow-rest-api-reference.md`
-> - `~/Documents/Apps/VueSpeed/docs/baserow-rest-api-reference.md` (als VueSpeed ooit Baserow gebruikt)
-> - `~/Documents/Apps/Baserow-UI/docs/baserow-rest-api-reference.md` (als Baserow-UI ooit Baserow-ops nodig heeft)
-> - `~/Documents/Apps/GolfCaddy/docs/baserow-rest-api-reference.md` (als GolfCaddy ooit Baserow gebruikt)
+> - `~/Documents/Apps/VueSpeed/docs/baserow-rest-api-reference.md`
+> - `~/Documents/Apps/Baserow-UI/docs/baserow-rest-api-reference.md`
+> - `~/Documents/Apps/GolfCaddy/docs/baserow-rest-api-reference.md`
+>
+> Projecten die Baserow **niet** gebruiken (geen kopie nodig): `skiprove.com`, `sovrein.nl`.
 >
 > Sync-commando vanuit BundleVue (na wijziging):
 > ```bash
-> for target in MotionSense ProxmoxVue statuspage-HA; do
+> for target in MotionSense ProxmoxVue statuspage-HA VueSpeed Baserow-UI GolfCaddy; do
 >   cp ~/Documents/Apps/BundleVue/docs/baserow-rest-api-reference.md \
 >      ~/Documents/Apps/$target/docs/baserow-rest-api-reference.md
 > done
 > ```
 >
-> Commit daarna in elk project apart (aparte git repo's).
+> Commit daarna in elk project apart (het zijn aparte git repo's).
 
 ---
 
