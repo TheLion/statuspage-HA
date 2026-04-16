@@ -8,7 +8,7 @@ Deze repo maakt gebruik van een gedeelde knowledge base in
 - **Project metadata**: [`../shared-knowledge/project-registry.yaml`](../shared-knowledge/project-registry.yaml) entry `statuspage-ha`
 - **Baserow**: [`rest-api-reference`](../shared-knowledge/baserow/rest-api-reference.md) · [`conventions`](../shared-knowledge/baserow/conventions.md) · [`schema-changelog`](../shared-knowledge/baserow/schema-changelog.md)
 - **Backend**: [`home-assistant`](../shared-knowledge/backend/home-assistant.md)
-- **Workflow**: [`git`](../shared-knowledge/workflow/git.md)
+- **Workflow**: [`git`](../shared-knowledge/workflow/git.md) · [`karpathy-skills`](../shared-knowledge/workflow/karpathy-skills.md)
 
 Onderstaande secties beschrijven **uitsluitend projectspecifieke** regels die
 afwijken van of aanvullen op de shared-knowledge baseline.
