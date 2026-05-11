@@ -270,6 +270,9 @@ prevention is better than recovery.
 | Sketch | https://status.sketch.com | Instatus |
 | Todoist | https://status.todoist.net | Instatus |
 | TelemetryDeck | https://status.telemetrydeck.com | Better Stack |
+| Plausible Analytics | https://status.plausible.io | Better Stack |
+| Framer | https://status.framer.com | Better Stack |
+| Runway | https://status.runway.team | Better Stack |
 | Moneybird | https://status.moneybird.com | Sorry™ |
 | Broadcom | https://status.broadcom.com | Sorry™ |
 | Joinblink | https://status.joinblink.com | Sorry™ |
