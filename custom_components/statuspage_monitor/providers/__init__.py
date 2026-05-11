@@ -13,6 +13,7 @@ import logging
 import aiohttp
 
 from .base import Component, StatusPageData, StatusPageProvider  # noqa: F401 – re-exported
+from .betterstack import BetterStackProvider
 from .cachet import CachetProvider
 from .instatus import InstatusProvider
 from .sorry import SorryProvider
@@ -30,6 +31,7 @@ PROVIDERS: list[type] = [
     StatusIoProvider,
     UptimeRobotProvider,
     InstatusProvider,
+    BetterStackProvider,
     SorryProvider,
     CachetProvider,
 ]

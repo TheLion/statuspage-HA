@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Better Stack – dark navy #1B1F3B with mint accent #00D4A6 -->
+  <rect width="128" height="128" rx="24" fill="#1B1F3B"/>
+  <!-- Stacked layers motif -->
+  <polygon points="64,28 100,46 64,64 28,46" fill="#00D4A6"/>
+  <polygon points="64,64 100,82 64,100 28,82" fill="white" opacity="0.85"/>
+</svg>

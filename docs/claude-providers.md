@@ -18,7 +18,25 @@ Each provider class in `providers/` must implement:
 De volgorde in `PROVIDERS` in `providers/__init__.py` is belangrijk:
 
 - **Atlassian vóór Instatus** — beide gebruiken `/summary.json`; Atlassian moet eerst worden geprobeerd
+- **Better Stack** — eigen `/index.json` endpoint, geen conflict
 - **Cachet als laatste** — vereist een self-hosted ping endpoint
+
+## Better Stack mapping-conventies
+
+Better Stack source-waarden mappen als volgt naar de canonieke enums:
+
+| Source `aggregate_state` / `resource.status` | Indicator | Component |
+|---|---|---|
+| `operational` | `none` | `operational` |
+| `degraded` | `minor` | `degraded_performance` |
+| `downtime` | `critical` | `major_outage` |
+| `maintenance` | `none` (Atlassian/Instatus-conventie — los getrackt) | `under_maintenance` |
+
+Status reports met `report_type=manual` worden incidents (skip op
+`aggregate_state=resolved`); `report_type=maintenance` wordt een
+maintenance-window. De maintenance-lifecycle wordt afgeleid uit `starts_at` /
+`ends_at` (vóór nu = `scheduled`, lopend = `in_progress`, na `ends_at` =
+gefilterd). Detectie op `data.type == "status_page"` in `/index.json`.
 
 ## Nieuwe provider toevoegen
 
@@ -29,14 +47,6 @@ De volgorde in `PROVIDERS` in `providers/__init__.py` is belangrijk:
 5. Voeg een SVG-logo toe aan `providers/logos/<naam>.svg`
 
 ## Toekomstige providers (onderzocht, nog niet geïmplementeerd)
-
-### Better Stack
-
-- **Website:** https://betterstack.com
-- **API:** Voeg `/index.json` toe aan elke status page URL. Geen auth nodig.
-- **Formaat:** JSON:API. `data.attributes.aggregate_state`: `operational`, `degraded`, `downtime`, `maintenance`. `included[]` bevat secties, resources (monitors) en status reports (incidents + updates).
-- **Detectie:** response bevat `data.type == "status-page"` of `data.attributes.aggregate_state`.
-- **Voorbeelden:** Geen bekende publieke URLs gevonden (custom domains, geen vast patroon).
 
 ### Hyperping
 
