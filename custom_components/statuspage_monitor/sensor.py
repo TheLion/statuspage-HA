@@ -86,6 +86,7 @@ _PROVIDER_ICONS: dict[str, str] = {
     "instatus": "mdi:lightning-bolt",
     "sorry": "mdi:emoticon-sad-outline",
     "cachet": "mdi:shield-check",
+    "betterstack": "mdi:layers-triple",
 }
 
 

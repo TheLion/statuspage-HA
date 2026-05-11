@@ -24,6 +24,7 @@ PROVIDER_UPTIMEROBOT = "uptimerobot"
 PROVIDER_INSTATUS = "instatus"
 PROVIDER_SORRY = "sorry"
 PROVIDER_CACHET = "cachet"
+PROVIDER_BETTERSTACK = "betterstack"
 
 # Overall status indicator values (normalised – shared across all providers)
 INDICATOR_NONE = "none"
