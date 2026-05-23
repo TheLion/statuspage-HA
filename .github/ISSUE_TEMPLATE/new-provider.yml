@@ -30,7 +30,7 @@ body:
     attributes:
       label: API notes (optional)
       description: >
-        Anything you know about the API — public docs URL, authentication
+        Anything you know about the API: public docs URL, authentication
         requirements, known quirks.
 
   - type: checkboxes

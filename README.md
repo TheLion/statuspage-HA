@@ -7,11 +7,11 @@
 [![License](https://img.shields.io/github/license/TheLion/statuspage-HA)](LICENSE)
 
 Home Assistant custom integration that monitors status pages and exposes health
-data as sensors — overall status, active incidents, scheduled maintenances, and
+data as sensors: overall status, active incidents, scheduled maintenances, and
 one sensor per service component.
 
-The provider is **auto-detected from the URL**. Just enter the status page
-address and the integration handles the rest.
+The provider is **auto-detected from the URL**. Enter the status page address
+and the integration handles the rest.
 
 
 ---
@@ -56,8 +56,8 @@ Entity IDs follow the pattern `sensor.statuspage_<page_name>_<sensor>`.
 | `_scheduled_maintenances` | Count | Number of upcoming / in-progress windows. Attribute: `maintenances` list |
 | `_<component_slug>` | Enum | One per component: `operational` · `degraded_performance` · `partial_outage` · `major_outage` · `under_maintenance` |
 
-Component sensors are **discovered dynamically** — new components that appear
-after the first poll are automatically added without a restart.
+Component sensors are **discovered dynamically**. New components that appear
+after the first poll are added without a restart.
 
 ### Icon and colour attributes
 
@@ -97,14 +97,14 @@ not support dynamic icon colours from attributes.
 
 ## When the status page changes
 
-Status pages are not static — components get added, removed, or renamed over
-time. Here is how the integration handles each scenario:
+Status pages are not static. Components get added, removed, or renamed over
+time. The integration handles each scenario as follows:
 
 | Scenario | Behaviour |
 |----------|-----------|
 | **Component added** | A new sensor is created automatically on the next poll. No restart required. |
-| **Component removed** | The sensor becomes `unavailable`. It is not deleted automatically — remove it manually via **Settings → Devices & Services**. |
-| **Component renamed** | The sensor name updates automatically (it reads the name live from the API). The entity ID stays the same — it was assigned at creation time and is not changed by renames. |
+| **Component removed** | The sensor becomes `unavailable`. It is not deleted automatically. Remove it manually via **Settings → Devices & Services**. |
+| **Component renamed** | The sensor name updates automatically (it reads the name live from the API). The entity ID stays the same: it was assigned at creation time and is not changed by renames. |
 | **Page name changed** | Sensor attributes (e.g. `page_name`) update automatically. Existing entity IDs are not affected. |
 
 **Why are removed components not deleted automatically?**
@@ -214,7 +214,7 @@ file endpoint). No minimum HA version is required.
 1. **Settings → Devices & Services → + Add Integration → StatusPage Monitor**
 2. Enter the base URL of the status page (e.g. `https://www.cloudflarestatus.com`).
 3. Optionally adjust the polling interval (default 60 s, min 30 s, max 3600 s).
-4. Submit — the provider is detected and all sensors are created automatically.
+4. Submit. The provider is detected and all sensors are created automatically.
 
 Repeat for each additional status page. Every page is an independent device.
 
@@ -279,10 +279,10 @@ prevention is better than recovery.
 | Pingdom | https://status.pingdom.com | Sorry™ |
 
 > Atlassian Statuspage is used by hundreds of services (Cloudflare, Datadog,
-> Twilio, Atlassian, OpenAI, and many more) — just enter any compatible URL.
+> Twilio, Atlassian, OpenAI, and many more). Any compatible URL works.
 >
 > Instatus, Better Stack, and Sorry™ are each used by hundreds of services on
-> custom domains — just enter any compatible URL.
+> custom domains. Any compatible URL works.
 >
 > Cachet is self-hosted, so any self-managed Cachet instance can be monitored
 > by entering its base URL. The demo instances above may not always be available.
