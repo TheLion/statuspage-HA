@@ -1,4 +1,8 @@
-# StatusPage Monitor
+<p align="center">
+  <img src="brand/logo.png" alt="StatusPage Monitor" width="180">
+</p>
+
+<h1 align="center">StatusPage Monitor</h1>
 
 [![Release](https://img.shields.io/github/v/release/TheLion/statuspage-HA?color=blue)](https://github.com/TheLion/statuspage-HA/releases)
 [![Installs](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.statuspage_monitor.total)](https://analytics.home-assistant.io)
