@@ -6,3 +6,7 @@ __pycache__/
 # Claude Code
 .claude/
 CLAUDE.md
+
+# Local docs not for public repo
+docs/baserow-rest-api-reference.md
+docs/claude-*.md
